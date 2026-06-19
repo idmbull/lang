@@ -1,0 +1,51 @@
+/* ================= BỘ BIẾN MÀU MẶC ĐỊNH (ENGLISH / DARK THEME) ================= */
+:root {
+    /* Font mặc định cho Tiếng Anh / Tiếng Việt */
+    --font-ui: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-mono: 'PT Mono', 'Consolas', 'Monaco', monospace;
+
+    /* Màu nền Dark chuẩn IDM */
+    --bg-primary: #181818;
+    --container-bg: #212121;
+    --header-bg: #212121;
+
+    /* Màu chữ */
+    --text-primary: #f0f0f0;
+    --text-secondary: #b0b0b0;
+    --text-light: #fff;
+    --text-muted: #666;
+
+    /* Màu nhấn (Accent - Tím IDM) */
+    --accent-color: #8e2de2;
+    --accent-gradient: linear-gradient(to right, #6a1b9a, #8e2de2);
+
+    /* Màu trạng thái Gõ phím */
+    --correct-color: #4caf50;
+    --incorrect-color: #f44336;
+    --incorrect-bg: rgba(244, 67, 54, 0.15);
+
+    /* Khung viền & Component */
+    --section-bg: #2a2a3a;
+    --border-color: #444;
+    --shadow-color: rgba(0, 0, 0, 0.5);
+
+    /* Nút Toggle */
+    --toggle-bg: #555;
+    --toggle-checked-bg: #8e2de2;
+}
+
+/* ================= TÙY CHỈNH THEO NGÔN NGỮ (CHỈ ĐỔI FONT) ================= */
+
+/* Tiếng Trung */
+[data-theme="mandarin"] {
+    --font-ui: 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif;
+    --font-mono: 'Microsoft YaHei', 'PingFang SC', monospace;
+    --incorrect-bg: rgba(244, 67, 54, 0.08);
+    /* Làm mờ nền lỗi màu đỏ để chữ Hán không bị chói */
+}
+
+/* Tiếng Hàn */
+[data-theme="korean"] {
+    --font-ui: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    --font-mono: 'Malgun Gothic', 'Apple SD Gothic Neo', monospace;
+}

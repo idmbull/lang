@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Idm Typing Master</title>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1 id="pageTitle">Reading Practice</h1>
+      <p class="subtitle" id="headerSubtitle">Tập trung - Thư giãn - Phát triển</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-value" id="accuracy">100%</div>
+        <div class="stat-label">Acc</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="wpm">0</div>
+        <div class="stat-label">WPM</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="time">0s</div>
+        <div class="stat-label">Time</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="errors">0</div>
+        <div class="stat-label">Err</div>
+      </div>
+    </div>
+
+    <div class="text-display-container" id="textContainer">
+      <div class="text-display" id="textDisplay">Loading...</div>
+    </div>
+
+    <!-- THANH CÔNG CỤ (THIẾT KẾ GỐC CỦA DỰ ÁN) -->
+    <div class="toolbar">
+      <div class="toolbar-left settings-group">
+        <div class="toggle-container" title="Chọn giao diện">
+          <select id="themeSelect" style="width: 110px; padding: 4px 8px;">
+            <option value="english">English</option>
+            <option value="mandarin">Mandarin</option>
+            <option value="korean">Korean</option>
+          </select>
+        </div>
+
+        <div class="toggle-container" title="Âm thanh gõ phím">
+          <label class="toggle-switch">
+            <input type="checkbox" id="soundToggle" checked>
+            <span class="slider"></span>
+          </label>
+          <span>Sound</span>
+        </div>
+
+        <div class="toggle-container" title="Phát âm từ vựng">
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoPronounceToggle" checked>
+            <span class="slider"></span>
+          </label>
+          <span>Speak</span>
+        </div>
+
+        <div class="toggle-container" title="Chế độ không nhìn">
+          <label class="toggle-switch">
+            <input type="checkbox" id="blindModeToggle">
+            <span class="slider"></span>
+          </label>
+          <span>Blind</span>
+        </div>
+
+        <div class="toggle-container" title="Hiện chú thích">
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoTooltipToggle" checked>
+            <span class="slider"></span>
+          </label>
+          <span>Tips</span>
+        </div>
+
+        <div class="mini-volume-control hidden" id="volumeControl" title="Âm lượng đọc">
+          <input type="range" id="dictationVolume" min="0" max="5" step="0.1" value="1">
+        </div>
+
+        <div class="media-controls hidden" id="mediaControls">
+          <button id="dictationPlayAllBtn" class="btn-media" title="Phát/Dừng (Toàn bài)">▶</button>
+        </div>
+
+        <!-- margin-left: auto giúp đẩy nút Start sát về lề phải -->
+        <div class="toggle-container" title="Bắt đầu / Dừng bài tập" style="margin-left: auto;">
+          <label class="toggle-switch">
+            <input type="checkbox" id="actionToggle">
+            <span class="slider"></span>
+          </label>
+          <span id="actionLabel" style="font-size: 0.9rem; margin-right: 8px;">Start</span>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <input type="file" id="fileLoader" accept=".txt,.md,.json,.tsv,.mp3" hidden multiple>
+      <button id="fileLoaderBtn" class="btn-icon">📂 Load</button>
+
+      <div class="custom-dropdown" id="playlistDropdown">
+        <div class="dropdown-trigger" id="playlistTrigger">
+          <span>Chọn bài tập...</span><span class="arrow">▼</span>
+        </div>
+        <div class="dropdown-content hidden" id="playlistContent"></div>
+      </div>
+
+      <button id="editBtn" class="btn-icon icon-only" title="Sửa bài tập trên GitHub">✏️</button>
+      <button id="vocabBtn" class="btn-icon icon-only" title="Danh sách từ vựng">📝</button>
+    </footer>
+  </div>
+
+  <div class="input-area">
+    <textarea id="textInput" spellcheck="false" autocomplete="off"></textarea>
+  </div>
+
+  <!-- Modals & Tooltips -->
+  <!-- Modal Load file Text + MP3 từ máy tính -->
+  <div id="dictationModal" class="modal hidden">
+    <div class="modal-content" style="padding: 30px; width: 400px; text-align: center; position: relative;">
+      <h2 style="margin-bottom: 20px; color: var(--accent-color);">Tải bài tập (Dictation)</h2>
+      <div style="text-align: left; margin-bottom: 15px;">
+        <label style="display:block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted)">1. File
+          Text/Markdown (.txt, .md)</label>
+        <input type="file" id="dictationSubInput" accept=".txt,.tsv,.md"
+          style="width: 100%; padding: 8px; border: 1px dashed var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary);">
+      </div>
+      <div style="text-align: left; margin-bottom: 20px;">
+        <label style="display:block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted)">2. File Audio
+          (.mp3, .wav) - Không bắt buộc</label>
+        <input type="file" id="dictationAudioInput" accept="audio/*"
+          style="width: 100%; padding: 8px; border: 1px dashed var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary);">
+      </div>
+      <div style="margin-bottom: 20px; text-align: left;">
+        <label class="toggle-container">
+          <input type="checkbox" id="dictationBlindMode" style="margin-right: 8px;">
+          Bật chế độ Blind Mode (Giấu chữ)
+        </label>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="dictationCancelBtn" class="btn-icon">Hủy</button>
+        <button id="dictationStartBtn" class="btn-icon"
+          style="background: var(--accent-gradient); color: white; border: none;" disabled>Bắt đầu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hộp thoại Kết quả (Result Modal) -->
+  <div id="resultModal" class="modal hidden">
+    <div class="modal-content" style="text-align: center;">
+      <h2 style="color: var(--accent-color); margin-bottom: 10px;">🎉 Hoàn thành!</h2>
+      <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+        <div class="stat-box"
+          style="background: var(--section-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase;">Accuracy</div>
+          <div id="resAcc" style="font-size: 2rem; font-weight: bold; color: var(--correct-color);">0%</div>
+        </div>
+        <div class="stat-box"
+          style="background: var(--section-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase;">WPM</div>
+          <div id="resWpm" style="font-size: 2rem; font-weight: bold; color: var(--accent-color);">0</div>
+        </div>
+        <div class="stat-box"
+          style="background: var(--section-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase;">Time</div>
+          <div id="resTime" style="font-size: 1.5rem; font-weight: 600;">0s</div>
+        </div>
+        <div class="stat-box"
+          style="background: var(--section-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase;">Errors</div>
+          <div id="resErr" style="font-size: 1.5rem; font-weight: 600; color: var(--incorrect-color);">0</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+        <button id="btnReplay" class="btn-icon">↺ Luyện lại</button>
+        <button id="btnNext" class="btn-icon"
+          style="background: var(--accent-gradient); color: white; border: none;">Bài tiếp theo ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="globalTooltip"></div>
+
+  <!-- ĐÂY LÀ DÒNG BẠN BỊ THIẾU -->
+  <div id="floatingHighlightBtn" class="floating-btn hidden">✨ Lưu từ</div>
+
+  <!-- Modal Từ Vựng -->
+  <div id="vocabModal" class="modal hidden">
+    <div class="modal-content" style="position: relative;">
+      <h2 style="margin-bottom:15px; color:var(--accent-color)">📝 Từ vựng</h2>
+      <ul id="vocabList" style="list-style:none; padding:0; max-height:40vh; overflow-y:auto; margin-bottom:20px;"></ul>
+      <div style="text-align:center">
+        <button id="vocabExportBtn" class="btn-icon"
+          style="background:var(--accent-gradient); color:white; border:none">📥 Tải về (.txt)</button>
+      </div>
+      <button id="vocabCloseBtn" class="btn-icon"
+        style="position:absolute; top:15px; right:15px; padding: 4px 10px;">✕</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
