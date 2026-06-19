@@ -1,6 +1,6 @@
 import { EventBus } from '../core/eventBus.js';
-// Import file chứa ngày giờ vừa được script tự động sinh ra
-import fileDates from '../file-dates.json';
+// Import file chứa metadata (ngày giờ + audio) do script tự sinh ra
+import fileMetadata from '../file-dates.json';
 
 export class PlaylistDropdown {
     constructor(triggerId, contentId) {
@@ -45,23 +45,20 @@ export class PlaylistDropdown {
         }
 
         const buildDOM = (node, parentUl) => {
-            // [MỚI]: THUẬT TOÁN SẮP XẾP
             const sortedKeys = Object.keys(node).sort((a, b) => {
                 const isFileA = typeof node[a] === 'string';
                 const isFileB = typeof node[b] === 'string';
 
-                // Ưu tiên Thư mục nằm trên File
                 if (!isFileA && isFileB) return -1;
                 if (isFileA && !isFileB) return 1;
 
-                // Nếu cả 2 là File -> Xếp theo Thời gian sửa đổi gần nhất (Mới nhất nằm trên)
                 if (isFileA && isFileB) {
-                    const timeA = fileDates[node[a]] || 0;
-                    const timeB = fileDates[node[b]] || 0;
+                    // Đã đổi cấu trúc đọc json: fileMetadata[...].date
+                    const timeA = fileMetadata[node[a]] ? fileMetadata[node[a]].date : 0;
+                    const timeB = fileMetadata[node[b]] ? fileMetadata[node[b]].date : 0;
                     return timeB - timeA;
                 }
 
-                // Nếu cả 2 là Thư mục -> Xếp theo ABC
                 return a.localeCompare(b);
             });
 
@@ -73,7 +70,12 @@ export class PlaylistDropdown {
                     const label = document.createElement('div');
                     label.className = 'tree-label is-file selectable-file';
                     const cleanName = key.replace('.md', '');
-                    label.innerHTML = `<span class="tree-icon">📄</span> ${cleanName}`;
+
+                    // KIỂM TRA ICON AUDIO
+                    const hasAudio = fileMetadata[node[key]] ? fileMetadata[node[key]].hasAudio : false;
+                    const icon = hasAudio ? '🎧' : '📄';
+
+                    label.innerHTML = `<span class="tree-icon">${icon}</span> ${cleanName}`;
 
                     label.onclick = async (e) => {
                         e.stopPropagation();

@@ -2,7 +2,7 @@ import fs from 'fs';
 import { execSync } from 'child_process';
 import path from 'path';
 
-const dates = {};
+const metadata = {};
 
 function walk(dir) {
     if (!fs.existsSync(dir)) return;
@@ -13,25 +13,31 @@ function walk(dir) {
             walk(fullPath);
         } else if (fullPath.endsWith('.md')) {
             const normalizedPath = '/' + fullPath.replace(/\\/g, '/');
+
+            // 1. Quét Ngày giờ (Git Date)
+            let date = 0;
             try {
-                // Hỏi Git xem file này được sửa lần cuối khi nào
                 const gitDate = execSync(`git log -1 --format="%ct" "${fullPath}"`).toString().trim();
-                if (gitDate) {
-                    dates[normalizedPath] = parseInt(gitDate) * 1000;
-                } else {
-                    // Nếu file mới tạo chưa kịp commit lên Git thì lấy giờ của máy tính
-                    dates[normalizedPath] = fs.statSync(fullPath).mtimeMs;
-                }
+                date = gitDate ? parseInt(gitDate) * 1000 : fs.statSync(fullPath).mtimeMs;
             } catch (e) {
-                dates[normalizedPath] = fs.statSync(fullPath).mtimeMs;
+                date = fs.statSync(fullPath).mtimeMs;
             }
+
+            // 2. Quét Audio: Đọc nhanh nội dung file xem có chứa Timestamp không (Ví dụ: 3.200 7.860)
+            const content = fs.readFileSync(fullPath, 'utf8');
+            const hasAudio = /^([\d.]+)\s+([\d.]+)/m.test(content);
+
+            // Lưu cả ngày giờ và cờ Audio
+            metadata[normalizedPath] = {
+                date: date,
+                hasAudio: hasAudio
+            };
         }
     }
 }
 
-console.log("Đang quét lịch sử chỉnh sửa file...");
+console.log("Đang quét siêu dữ liệu (Ngày giờ & Audio)...");
 walk('library');
 
-// Lưu kết quả vào src để code Frontend đọc được
-fs.writeFileSync('src/file-dates.json', JSON.stringify(dates, null, 2));
-console.log("✅ Đã cập nhật xong thời gian sửa đổi!");
+fs.writeFileSync('src/file-dates.json', JSON.stringify(metadata, null, 2));
+console.log("✅ Đã cập nhật xong siêu dữ liệu!");
