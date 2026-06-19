@@ -469,7 +469,7 @@ if (editBtn) {
       return;
     }
     // Link repo gốc của bạn. Giả định kho chứa là idmbull/english
-    const githubUrl = `https://github.com/idmbull/english/edit/main${path}`;
+    const githubUrl = `https://github.com/idmbull/lang/edit/main${path}`;
     window.open(githubUrl, '_blank');
   };
 }
