@@ -17,13 +17,24 @@ export class TextDisplay {
             const node = walker.currentNode;
             const p = node.parentElement;
             if (p.closest('.visual-header') || p.closest('.speaker-label') || p.closest('.skipped-text')) continue;
-            if (!node.textContent.trim() && !p.classList.contains("tooltip-word")) continue;
+            // Đã xóa lệnh lọc khoảng trắng sai lầm ở đây
             nodesToReplace.push(node);
         }
 
         nodesToReplace.forEach(node => {
             const parent = node.parentNode;
-            const text = node.textContent;
+            let text = node.textContent;
+            
+            // Giải pháp mới: Chỉ xóa các dấu xuống dòng \n rác do thư viện marked sinh ra.
+            // Giữ nguyên 100% các khoảng trắng (Space) hợp lệ của người dùng.
+            text = text.replace(/[\r\n]+/g, '');
+            
+            if (text === '') {
+                // Xóa bỏ node nếu nó là rác
+                node.remove();
+                return;
+            }
+
             if (parent.classList?.contains("tooltip-word")) {
                 parent.innerHTML = "";
                 parent.appendChild(wrapChars(text, "tooltip-char", parent.dataset.note || ""));
@@ -32,13 +43,13 @@ export class TextDisplay {
             }
         });
 
-        // [QUAN TRỌNG] Xử lý vị trí dấu xuống dòng (Bản gốc)
+        // Xử lý vị trí dấu Enter (↵) xuống dòng
         this.container.querySelectorAll(':scope > .newline-char').forEach(span => {
             let prev = span.previousElementSibling;
             while (prev && (prev.tagName === 'BR' || prev.classList.contains('visual-break'))) {
                 prev = prev.previousElementSibling;
             }
-
+            
             if (!prev || prev.classList.contains('visual-header')) {
                 span.remove();
             } else if (/^(P|DIV|H[1-6]|LI|BLOCKQUOTE)$/.test(prev.tagName)) {
@@ -68,6 +79,8 @@ export class TextDisplay {
 
         const verifiedSpans = [];
         let textIdx = 0;
+        
+        // Quá trình dóng hàng Span và Logic (Sẽ chính xác 100% sau khi sửa lỗi trên)
         for (const span of rawSpans) {
             if (textIdx >= expectedText.length) break;
             const spanChar = span.textContent;
@@ -79,7 +92,7 @@ export class TextDisplay {
                 verifiedSpans.push(span);
                 textIdx++;
             } else if (effectiveSpanChar === ' ' && expectedChar !== ' ') {
-                // Phantom space -> Ignore
+                // Bỏ qua phantom space
             } else {
                 verifiedSpans.push(span);
                 textIdx++;
@@ -87,7 +100,7 @@ export class TextDisplay {
         }
 
         Store.getState().textSpans = verifiedSpans;
-        this.updateCursor(0, [], expectedText, "");
+        this.updateCursor(0, [], expectedText, ""); 
     }
 
     updateCursor(caret, changedIndices, expectedText, currentText) {
