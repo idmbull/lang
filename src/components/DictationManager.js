@@ -4,7 +4,7 @@ import { setupDragDrop } from '../utils/drag-drop.js';
 export class DictationManager {
     constructor() {
         this.modal = document.getElementById('dictationModal');
-        this.btnLoad = document.getElementById('fileLoaderBtn'); // Nút Load ở góc dưới
+        this.btnLoad = document.getElementById('fileLoaderBtn');
         this.btnCancel = document.getElementById('dictationCancelBtn');
         this.btnStart = document.getElementById('dictationStartBtn');
 
@@ -16,52 +16,40 @@ export class DictationManager {
     }
 
     initEvents() {
-        // Mở Modal khi click nút Load
         this.btnLoad.onclick = (e) => {
             e.preventDefault();
             this.modal.classList.remove('hidden');
         };
 
-        // Đóng modal
         this.btnCancel.onclick = () => this.modal.classList.add('hidden');
 
-        // Bật nút Start khi đã chọn file text
         this.subInput.onchange = () => {
             this.btnStart.disabled = !this.subInput.files.length;
         };
 
-        // Khi bấm Start
         this.btnStart.onclick = () => {
             const subFile = this.subInput.files[0];
-            const audioFile = this.audioInput.files[0];
+            const mediaFile = this.audioInput.files[0]; // Có thể là mp3 hoặc mp4
             if (!subFile) return;
 
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const textContent = e.target.result;
-                let audioBuffer = null;
 
-                // Nếu có file Audio, đọc dưới dạng ArrayBuffer
-                if (audioFile) {
-                    audioBuffer = await audioFile.arrayBuffer();
-                }
-
-                // Phát sự kiện Load Bài Học, truyền kèm theo audioBuffer và cờ BlindMode
                 EventBus.emit('app:load_local_lesson', {
                     title: subFile.name.replace(/\.[^/.]+$/, ""),
                     content: textContent,
-                    audioBuffer: audioBuffer,
+                    mediaFile: mediaFile,
                     enableBlindMode: this.blindModeCheck.checked
                 });
 
-                // Cập nhật giao diện nút Load
-                this.btnLoad.innerHTML = `${audioBuffer ? "🎧" : "📄"} ${subFile.name}`;
+                const icon = mediaFile ? (mediaFile.type.includes('video') ? "🎬" : "🎧") : "📄";
+                this.btnLoad.innerHTML = `${icon} ${subFile.name}`;
                 this.modal.classList.add('hidden');
             };
             reader.readAsText(subFile, "utf-8");
         };
 
-        // Tích hợp Kéo thả
         setupDragDrop(this.btnLoad, (files) => {
             this.modal.classList.remove("hidden");
             const dtSub = new DataTransfer();
@@ -70,7 +58,7 @@ export class DictationManager {
             files.forEach(f => {
                 const name = f.name.toLowerCase();
                 if (/\.(txt|tsv|md)$/.test(name)) dtSub.items.add(f);
-                else if (/\.(mp3|wav|ogg|m4a)$/.test(name)) dtAudio.items.add(f);
+                else if (/\.(mp3|wav|ogg|m4a|mp4)$/.test(name)) dtAudio.items.add(f);
             });
 
             if (dtSub.files.length) this.subInput.files = dtSub.files;

@@ -17,13 +17,14 @@ import { TimerService } from './services/timer.js';
 import { VocabManager } from './components/VocabManager.js';
 import { DictationManager } from './components/DictationManager.js';
 import { SuperAudioPlayer } from './services/audio-player.js';
+import { VideoPlayer } from './services/video-player.js';
 
 console.log("=== IDM TYPING MASTER FULLY LOADED ===");
 
 const AUDIO_BASE = "https://cdn.jsdelivr.net/gh/idmbull/english@main/assets/audio/";
 
 // =================================================================
-// 0. KHÔI PHỤC CÀI ĐẶT NGƯỜI DÙNG (LƯU TRẠNG THÁI)
+// 0. KHÔI PHỤC CÀI ĐẶT NGƯỜI DÙNG
 // =================================================================
 function restoreUserPreferences() {
   const getBool = (key, defaultVal) => {
@@ -31,28 +32,24 @@ function restoreUserPreferences() {
     return val === null ? defaultVal : val === 'true';
   };
 
-  // Sound
   const soundToggle = document.getElementById('soundToggle');
   if (soundToggle) {
     soundToggle.checked = getBool('pref_sound', true);
     soundToggle.addEventListener('change', e => localStorage.setItem('pref_sound', e.target.checked));
   }
 
-  // Speak
   const speakToggle = document.getElementById('autoPronounceToggle');
   if (speakToggle) {
     speakToggle.checked = getBool('pref_speak', true);
     speakToggle.addEventListener('change', e => localStorage.setItem('pref_speak', e.target.checked));
   }
 
-  // Tooltips
   const tooltipToggle = document.getElementById('autoTooltipToggle');
   if (tooltipToggle) {
     tooltipToggle.checked = getBool('pref_tooltip', true);
     tooltipToggle.addEventListener('change', e => localStorage.setItem('pref_tooltip', e.target.checked));
   }
 
-  // Theme (Giao diện)
   const themeSelect = document.getElementById('themeSelect');
   if (themeSelect) {
     const savedTheme = localStorage.getItem('pref_theme') || 'english';
@@ -65,7 +62,6 @@ function restoreUserPreferences() {
     });
   }
 
-  // Blind Mode (Lưu trạng thái)
   const blindToggle = document.getElementById('blindModeToggle');
   if (blindToggle) {
     const isBlind = getBool('pref_blind', false);
@@ -84,7 +80,7 @@ function restoreUserPreferences() {
     });
   }
 }
-restoreUserPreferences(); // Chạy ngay khi load web
+restoreUserPreferences();
 
 // =================================================================
 // 1. KHỞI TẠO CÁC COMPONENT
@@ -96,13 +92,55 @@ const scroller = new AutoScroller('textContainer');
 const tooltipUI = new TooltipManager('textContainer', 'globalTooltip');
 const vocabManager = new VocabManager();
 const dictationUI = new DictationManager();
+
+// =================================================================
+// 2. HỆ THỐNG MEDIA TRUNG TÂM (WRAPPER CHO AUDIO & VIDEO)
+// =================================================================
 const audioPlayer = new SuperAudioPlayer();
-
+const videoPlayer = new VideoPlayer('videoPlayer');
 let isGlobalPlaying = false;
+let currentMediaUrl = null;
 
-// =================================================================
-// 2. CÁC HÀM TIỆN ÍCH DÙNG CHUNG
-// =================================================================
+const MediaSystem = {
+  isLoaded() {
+    if (Store.getMediaType() === 'video') return videoPlayer.video.src !== '';
+    return audioPlayer.buffer !== null;
+  },
+  playSegment(start, end) {
+    if (Store.getMediaType() === 'video') videoPlayer.playSegment(start, end);
+    else audioPlayer.playSegment(start, end);
+  },
+  pause() {
+    if (Store.getMediaType() === 'video') videoPlayer.pause();
+    else audioPlayer.pause();
+  },
+  resume() {
+    if (Store.getMediaType() === 'video') videoPlayer.resume();
+    else audioPlayer.resume();
+  },
+  stop() {
+    videoPlayer.stop();
+    audioPlayer.stop();
+  },
+  clear() {
+    videoPlayer.clear();
+    audioPlayer.clear();
+  },
+  setVolume(v) {
+    videoPlayer.setVolume(v);
+    audioPlayer.setVolume(v);
+  },
+  get pausedAt() { return Store.getMediaType() === 'video' ? videoPlayer.pausedAt : audioPlayer.pausedAt; },
+  set pausedAt(v) {
+    if (Store.getMediaType() === 'video') videoPlayer.pausedAt = v;
+    else audioPlayer.pausedAt = v;
+  },
+  get isPlaying() { return Store.getMediaType() === 'video' ? videoPlayer.isPlaying : audioPlayer.isPlaying; },
+  resumeCtx() {
+    if (Store.getMediaType() === 'audio' && audioPlayer.ctx?.state === 'suspended') audioPlayer.ctx.resume();
+  }
+};
+
 function updatePlayIcon(isPlaying) {
   isGlobalPlaying = isPlaying;
   const btn = document.getElementById('dictationPlayAllBtn');
@@ -130,12 +168,14 @@ function toggleExercise(isStarting) {
     AudioResolver.playClick();
 
     if (Store.isAudio()) {
-      if (audioPlayer.ctx?.state === 'suspended') audioPlayer.ctx.resume();
+      MediaSystem.resumeCtx();
       const src = Store.getSource();
       const seg = src.segments[src.currentSegment];
       if (seg) {
-        if (audioPlayer.buffer) audioPlayer.playSegment(seg.audioStart, seg.audioEnd);
-        else if (document.getElementById('autoPronounceToggle').checked) AudioResolver.playNativeTTS(seg.text);
+        if (MediaSystem.isLoaded()) MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
+        else if (document.getElementById('autoPronounceToggle').checked && Store.getMediaType() !== 'video') {
+          AudioResolver.playNativeTTS(seg.text);
+        }
       }
     }
 
@@ -148,7 +188,7 @@ function toggleExercise(isStarting) {
     document.getElementById('actionLabel').style.color = "var(--correct-color)";
     Store.stopExercise();
     TimerService.stop();
-    audioPlayer.stop();
+    MediaSystem.stop();
     updatePlayIcon(false);
   }
 
@@ -156,34 +196,31 @@ function toggleExercise(isStarting) {
   textInput.focus();
 }
 
-// =================================================================
-// 3. CẤU HÌNH AUDIO PLAYER
-// =================================================================
+// ---------------- Cấu hình Nút bấm Media ----------------
+audioPlayer.onEnded = () => { updatePlayIcon(false); audioPlayer.pausedAt = 0; };
+videoPlayer.onEnded = () => { updatePlayIcon(false); videoPlayer.pausedAt = 0; };
+
 const volInput = document.getElementById('dictationVolume');
 if (volInput) {
-  audioPlayer.setVolume(parseFloat(volInput.value));
-  volInput.oninput = (e) => audioPlayer.setVolume(parseFloat(e.target.value));
+  MediaSystem.setVolume(parseFloat(volInput.value));
+  volInput.oninput = (e) => MediaSystem.setVolume(parseFloat(e.target.value));
 }
 
 const playAllBtn = document.getElementById('dictationPlayAllBtn');
 if (playAllBtn) {
-  audioPlayer.onEnded = () => {
-    updatePlayIcon(false);
-    audioPlayer.pausedAt = 0;
-  };
   playAllBtn.onclick = () => {
     if (!Store.isAudio()) return;
-    if (audioPlayer.isPlaying) {
-      audioPlayer.pause();
+    if (MediaSystem.isPlaying) {
+      MediaSystem.pause();
       updatePlayIcon(false);
     } else {
-      if (audioPlayer.pausedAt === 0) {
+      if (MediaSystem.pausedAt === 0) {
         const src = Store.getSource();
         if (src.segments && src.segments[src.currentSegment]) {
-          audioPlayer.pausedAt = src.segments[src.currentSegment].audioStart;
+          MediaSystem.pausedAt = src.segments[src.currentSegment].audioStart;
         }
       }
-      audioPlayer.resume();
+      MediaSystem.resume();
       updatePlayIcon(true);
     }
     document.getElementById('textInput').focus();
@@ -193,58 +230,72 @@ if (playAllBtn) {
 // =================================================================
 // 4. HÀM LOAD BÀI HỌC VÀO APP
 // =================================================================
-async function loadLessonToApp(title, content, path = null, audioBuffer = null, enableBlindMode = false) {
+async function loadLessonToApp(title, content, path = null, mediaFile = null, enableBlindMode = false) {
+  if (currentMediaUrl) { URL.revokeObjectURL(currentMediaUrl); currentMediaUrl = null; }
+  MediaSystem.clear();
+
   document.getElementById('pageTitle').textContent = title;
 
   const parsed = ContentParser.parseUnified(content);
   const words = TypingEngine.computeWords(parsed.text, parsed.language);
 
-  let finalAudioBuffer = audioBuffer;
+  let mediaType = null;
 
-  if (!finalAudioBuffer && path && parsed.segments && parsed.segments.length > 0) {
+  // Lấy dữ liệu file Local nếu người dùng tự Load
+  if (mediaFile) {
+    mediaType = mediaFile.type.startsWith('video') ? 'video' : 'audio';
+    if (mediaType === 'video') {
+      currentMediaUrl = URL.createObjectURL(mediaFile);
+      videoPlayer.load(currentMediaUrl);
+      console.log("✅ Đã nạp Video MP4!");
+    } else {
+      await audioPlayer.load(await mediaFile.arrayBuffer());
+      console.log("✅ Đã nạp Audio MP3 Local!");
+    }
+  }
+  // Lấy file MP3 trên mạng nếu là bài có sẵn
+  else if (path && parsed.segments && parsed.segments.length > 0) {
     console.log(`Đang tải file MP3 cho bài: ${title}...`);
     try {
       const mp3Url = `${AUDIO_BASE}${encodeURIComponent(title)}.mp3`;
       const resp = await fetch(mp3Url);
-      if (resp.ok) finalAudioBuffer = await resp.arrayBuffer();
-      else console.warn("Không tìm thấy file MP3 tương ứng trên server.");
+      if (resp.ok) {
+        mediaType = 'audio';
+        await audioPlayer.load(await resp.arrayBuffer());
+      } else {
+        console.warn("Không tìm thấy file MP3 tương ứng trên server.");
+      }
     } catch (e) { console.error("Lỗi tải MP3:", e); }
   }
 
-  const hasAudio = finalAudioBuffer !== null || (parsed.segments && parsed.segments.length > 0);
-
-  Store.setSourceUnified(parsed, hasAudio, null, path);
+  Store.setSourceUnified(parsed, mediaType, null, path);
   Store.getState().wordTokens = words.tokens;
   Store.getState().wordStarts = words.starts;
 
-  // Apply Blind mode (Kết hợp logic Cài đặt và logic Modal)
   const isBlind = enableBlindMode || document.getElementById('blindModeToggle').checked;
   document.body.classList.toggle('blind-mode', isBlind);
 
   displayUI.render(parsed.html, parsed.text);
   if (isBlind) applyBlindModeUI(0);
 
-  if (finalAudioBuffer) {
-    await audioPlayer.load(finalAudioBuffer);
-    console.log("✅ Đã nạp MP3 thành công!");
-  } else {
-    audioPlayer.clear();
-  }
-
   const mediaControls = document.getElementById('mediaControls');
   const volumeControl = document.getElementById('volumeControl');
-  if (hasAudio && audioPlayer.buffer) {
+  const videoContainer = document.getElementById('videoContainer');
+
+  if (mediaType !== null) {
     mediaControls.classList.remove('hidden');
     volumeControl.classList.remove('hidden');
     document.getElementById('headerSubtitle').textContent = "Nghe kỹ - Gõ chính xác";
+    if (mediaType === 'video') videoContainer.classList.remove('hidden');
+    else videoContainer.classList.add('hidden');
   } else {
     mediaControls.classList.add('hidden');
     volumeControl.classList.add('hidden');
+    videoContainer.classList.add('hidden');
     document.getElementById('headerSubtitle').textContent = "Tập trung - Thư giãn - Phát triển";
   }
 
   words.tokens.slice(0, 5).forEach(word => AudioResolver.preloadWord(word));
-
   scroller.reset();
 
   TimerService.stop();
@@ -265,7 +316,7 @@ async function loadLessonToApp(title, content, path = null, audioBuffer = null, 
 }
 
 EventBus.on('app:load_lesson', (data) => loadLessonToApp(data.title, data.content, data.path));
-EventBus.on('app:load_local_lesson', (data) => loadLessonToApp(data.title, data.content, null, data.audioBuffer, data.enableBlindMode));
+EventBus.on('app:load_local_lesson', (data) => loadLessonToApp(data.title, data.content, null, data.mediaFile, data.enableBlindMode));
 
 EventBus.on(EVENTS.EXERCISE_START, () => {
   const actionToggle = document.getElementById('actionToggle');
@@ -304,12 +355,14 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       Store.setCurrentSegment(newSegIdx);
       const seg = src.segments[newSegIdx];
       if (seg) {
-        if (audioPlayer.buffer) audioPlayer.playSegment(seg.audioStart, seg.audioEnd);
-        else if (document.getElementById('autoPronounceToggle').checked) AudioResolver.playNativeTTS(seg.text);
+        if (MediaSystem.isLoaded()) MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
+        else if (document.getElementById('autoPronounceToggle').checked && Store.getMediaType() !== 'video') {
+          AudioResolver.playNativeTTS(seg.text);
+        }
       }
     }
   }
-  else if (data.wordToSpeak && document.getElementById('autoPronounceToggle').checked && (!Store.isAudio() || !audioPlayer.buffer)) {
+  else if (data.wordToSpeak && document.getElementById('autoPronounceToggle').checked && (!Store.isAudio() || !MediaSystem.isLoaded())) {
     AudioResolver.playWord(data.wordToSpeak);
   }
 
@@ -355,10 +408,10 @@ function playCurrentAudioOrSegment() {
     const src = Store.getSource();
     const seg = src.segments[src.currentSegment];
     if (seg) {
-      if (audioPlayer.buffer) {
-        if (audioPlayer.ctx?.state === 'suspended') audioPlayer.ctx.resume();
-        audioPlayer.playSegment(seg.audioStart, seg.audioEnd);
-      } else {
+      if (MediaSystem.isLoaded()) {
+        MediaSystem.resumeCtx();
+        MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
+      } else if (Store.getMediaType() !== 'video') {
         AudioResolver.playNativeTTS(seg.text);
       }
     }
@@ -402,11 +455,30 @@ document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
   const charIndex = Store.getState().textSpans.indexOf(e.target);
   if (charIndex === -1) return;
 
-  const { wordStarts, wordTokens } = Store.getState();
-  for (let i = 0; i < wordStarts.length; i++) {
-    if (charIndex >= wordStarts[i] && charIndex < wordStarts[i] + wordTokens[i].length) {
-      AudioResolver.playWord(wordTokens[i]);
-      break;
+  if (Store.isAudio()) {
+    const s = Store.getSource();
+    let targetSegIdx = 0;
+    for (let i = s.charStarts.length - 1; i >= 0; i--) {
+      if (charIndex >= s.charStarts[i]) { targetSegIdx = i; break; }
+    }
+    Store.setCurrentSegment(targetSegIdx);
+    const seg = s.segments[targetSegIdx];
+    if (seg) {
+      updatePlayIcon(false);
+      if (MediaSystem.isLoaded()) {
+        MediaSystem.resumeCtx();
+        MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
+      } else if (Store.getMediaType() !== 'video') {
+        AudioResolver.playNativeTTS(seg.text);
+      }
+    }
+  } else {
+    const { wordStarts, wordTokens } = Store.getState();
+    for (let i = 0; i < wordStarts.length; i++) {
+      if (charIndex >= wordStarts[i] && charIndex < wordStarts[i] + wordTokens[i].length) {
+        AudioResolver.playWord(wordTokens[i]);
+        break;
+      }
     }
   }
 });
@@ -457,9 +529,6 @@ document.getElementById('textContainer').onclick = () => {
   if (input && !input.disabled) input.focus();
 };
 
-// =================================================================
-// 8. TÍNH NĂNG EDIT TRÊN GITHUB
-// =================================================================
 const editBtn = document.getElementById('editBtn');
 if (editBtn) {
   editBtn.onclick = () => {
@@ -468,8 +537,58 @@ if (editBtn) {
       alert("Bài tập này được tải từ máy tính của bạn, không thể chỉnh sửa trên GitHub.");
       return;
     }
-    // Link repo gốc của bạn. Giả định kho chứa là idmbull/english
     const githubUrl = `https://github.com/idmbull/lang/edit/main${path}`;
     window.open(githubUrl, '_blank');
   };
+}
+
+// =================================================================
+// 9. TÍNH NĂNG DRAG & DROP CHO KHUNG VIDEO TRÔI NỔI
+// =================================================================
+const videoContainer = document.getElementById('videoContainer');
+const dragHandle = document.getElementById('videoDragHandle');
+
+let isDragging = false;
+let startX, startY, initialLeft, initialTop;
+
+if (dragHandle && videoContainer) {
+  dragHandle.addEventListener('mousedown', (e) => {
+    isDragging = true;
+
+    // Lấy tọa độ chuột lúc bắt đầu bấm
+    startX = e.clientX;
+    startY = e.clientY;
+
+    // Lấy tọa độ thực tế của khung video
+    const rect = videoContainer.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    // Chuyển hệ tọa độ từ bottom/right sang top/left để việc kéo thả không bị giật
+    videoContainer.style.bottom = 'auto';
+    videoContainer.style.right = 'auto';
+    videoContainer.style.left = `${initialLeft}px`;
+    videoContainer.style.top = `${initialTop}px`;
+
+    document.body.style.userSelect = 'none'; // Chống bôi đen chữ khi đang kéo
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+
+    // Tính toán khoảng cách chuột đã di chuyển
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    // Cập nhật vị trí mới cho Video
+    videoContainer.style.left = `${initialLeft + dx}px`;
+    videoContainer.style.top = `${initialTop + dy}px`;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      document.body.style.userSelect = ''; // Trả lại khả năng bôi đen chữ
+    }
+  });
 }

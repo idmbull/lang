@@ -1,6 +1,6 @@
 const INITIAL_STATE = {
     isActive: false,
-    isAudioMode: false,
+    mediaType: null, // null | 'audio' | 'video'
     blindMode: false,
     currentLessonPath: null,
     source: {
@@ -32,18 +32,19 @@ let state = JSON.parse(JSON.stringify(INITIAL_STATE));
 export const Store = {
     getState: () => state,
     getSource: () => state.source,
-    isAudio: () => state.isAudioMode,
+
+    isAudio: () => state.mediaType !== null,
+    getMediaType: () => state.mediaType,
+
     isBlind: () => state.blindMode,
 
-    // === THÊM DÒNG NÀY VÀO ĐÂY ===
     setCurrentSegment(index) {
         state.source.currentSegment = index;
     },
-    // ============================
 
-    setSourceUnified(data, hasAudio, audioUrl, lessonPath = null) {
+    setSourceUnified(data, mediaType, audioUrl, lessonPath = null) {
         this.reset();
-        state.isAudioMode = hasAudio || (data.segments && data.segments.length > 0);
+        state.mediaType = mediaType;
         state.source = { ...data, audioUrl, currentSegment: 0 };
         state.currentLessonPath = lessonPath;
     },

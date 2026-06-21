@@ -50,6 +50,11 @@ body {
     display: flex;
     flex-direction: column;
     backdrop-filter: blur(10px);
+
+    /* BỔ SUNG 3 DÒNG NÀY ĐỂ GIỮ KHUNG KHÔNG BỊ PHÌNH TO VỠ LAYOUT */
+    height: 92vh;
+    max-height: 900px;
+    overflow: hidden;
 }
 
 header {
