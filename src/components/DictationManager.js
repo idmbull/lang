@@ -10,6 +10,7 @@ export class DictationManager {
 
         this.subInput = document.getElementById('dictationSubInput');
         this.audioInput = document.getElementById('dictationAudioInput');
+        this.ytInput = document.getElementById('dictationYoutubeInput');
         this.blindModeCheck = document.getElementById('dictationBlindMode');
 
         this.initEvents();
@@ -27,9 +28,14 @@ export class DictationManager {
             this.btnStart.disabled = !this.subInput.files.length;
         };
 
+        this.audioInput.onchange = () => { if (this.audioInput.files.length) this.ytInput.value = ""; };
+        this.ytInput.oninput = () => { if (this.ytInput.value) this.audioInput.value = ""; };
+
         this.btnStart.onclick = () => {
             const subFile = this.subInput.files[0];
-            const mediaFile = this.audioInput.files[0]; // Có thể là mp3 hoặc mp4
+            const mediaFile = this.audioInput.files[0];
+            const ytUrl = this.ytInput.value.trim();
+
             if (!subFile) return;
 
             const reader = new FileReader();
@@ -40,10 +46,14 @@ export class DictationManager {
                     title: subFile.name.replace(/\.[^/.]+$/, ""),
                     content: textContent,
                     mediaFile: mediaFile,
+                    youtubeUrl: ytUrl,
                     enableBlindMode: this.blindModeCheck.checked
                 });
 
-                const icon = mediaFile ? (mediaFile.type.includes('video') ? "🎬" : "🎧") : "📄";
+                let icon = "📄";
+                if (ytUrl) icon = "🟥";
+                else if (mediaFile) icon = mediaFile.type.includes('video') ? "🎬" : "🎧";
+
                 this.btnLoad.innerHTML = `${icon} ${subFile.name}`;
                 this.modal.classList.add('hidden');
             };
@@ -62,7 +72,10 @@ export class DictationManager {
             });
 
             if (dtSub.files.length) this.subInput.files = dtSub.files;
-            if (dtAudio.files.length) this.audioInput.files = dtAudio.files;
+            if (dtAudio.files.length) {
+                this.audioInput.files = dtAudio.files;
+                this.ytInput.value = "";
+            }
             this.btnStart.disabled = !this.subInput.files.length;
         }, "Thả file vào đây!");
     }

@@ -60,12 +60,31 @@ function parseDictationLine(line, cleanFunc) {
 
 export const ContentParser = {
     parseUnified(rawContent) {
-        const lines = rawContent.split(/\r?\n/);
-        const language = LocaleService.detectLanguage(rawContent);
+        let contentToParse = rawContent.trimStart(); // Xóa dấu cách thừa ở đầu file
+        const metadata = {};
+
+        // BỘ LỌC TÌM METADATA (Lấy link Youtube, Video, Audio ẩn)
+        const frontmatterMatch = contentToParse.match(/^---\r?\n([\s\S]*?)\r?\n---(\r?\n|$)/);
+        if (frontmatterMatch) {
+            const yamlBlock = frontmatterMatch[1];
+            const lines = yamlBlock.split(/\r?\n/);
+            lines.forEach(line => {
+                const [key, ...valueParts] = line.split(':');
+                if (key && valueParts.length > 0) {
+                    metadata[key.trim().toLowerCase()] = valueParts.join(':').trim();
+                }
+            });
+            // Cắt bỏ đoạn --- ra khỏi nội dung để web không in ra màn hình
+            contentToParse = contentToParse.replace(frontmatterMatch[0], '').trimStart();
+        }
+
+        const lines = contentToParse.split(/\r?\n/);
+        const language = LocaleService.detectLanguage(contentToParse);
 
         const result = {
             title: "", text: "", html: "", language: language,
-            segments: [], charStarts: []
+            segments: [], charStarts: [],
+            metadata: metadata // Kẹp link youtube vào biến này gửi đi
         };
 
         let blocks = [];
@@ -107,7 +126,7 @@ export const ContentParser = {
 
         let currentParagraphHtml = "";
         let lastRawChar = null;
-        let lastBlockWasBreak = false; // Biến đánh dấu chuyển đoạn văn
+        let lastBlockWasBreak = false;
 
         const flushParagraph = () => {
             if (currentParagraphHtml) {
@@ -122,7 +141,7 @@ export const ContentParser = {
             if (block.type === 'header' || block.type === 'break') {
                 flushParagraph();
                 if (block.type === 'header') result.html += `<h3 class="visual-header">${block.content}</h3>`;
-                lastBlockWasBreak = true; // Đánh dấu đã xuống dòng
+                lastBlockWasBreak = true;
                 return;
             }
 
@@ -137,12 +156,9 @@ export const ContentParser = {
                     const startsWithSpace = cleanFragment.startsWith(" ");
 
                     if (!endsWithSpace && !startsWithSpace) {
-                        // NẾU LÀ XUỐNG DÒNG (CHUYỂN ĐOẠN VĂN MỚI): Bắt buộc chèn khoảng trắng để ấn phím Enter
                         if (lastBlockWasBreak) {
                             prefix = " ";
-                        }
-                        // TRONG CÙNG 1 ĐOẠN VĂN: Tiếng Trung dính liền, Tiếng Anh cách nhau
-                        else {
+                        } else {
                             if (language === 'zh') {
                                 const lastChar = result.text[result.text.length - 1];
                                 const firstChar = cleanFragment[0];
@@ -159,7 +175,7 @@ export const ContentParser = {
 
                 if (block.type === 'audio') result.segments.push({ audioStart: block.start, audioEnd: block.end, text: cleanFragment.trim() });
 
-                lastBlockWasBreak = false; // Reset lại trạng thái
+                lastBlockWasBreak = false;
             }
             else if (isSkippedLine) {
                 if (result.text.length > 0 && !result.text.endsWith(" ")) result.text += " ";

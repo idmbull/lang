@@ -1,6 +1,6 @@
 const INITIAL_STATE = {
     isActive: false,
-    mediaType: null, // null | 'audio' | 'video'
+    mediaType: null, // null | 'audio' | 'video' | 'youtube'
     blindMode: false,
     currentLessonPath: null,
     source: {

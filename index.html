@@ -37,6 +37,7 @@
       <div class="text-display" id="textDisplay">Loading...</div>
     </div>
 
+    <!-- THANH CÔNG CỤ (THIẾT KẾ GỐC CỦA DỰ ÁN) -->
     <div class="toolbar">
       <div class="toolbar-left settings-group">
         <div class="toggle-container" title="Chọn giao diện">
@@ -87,6 +88,7 @@
           <button id="dictationPlayAllBtn" class="btn-media" title="Phát/Dừng (Toàn bài)">▶</button>
         </div>
 
+        <!-- margin-left: auto giúp đẩy nút Start sát về lề phải -->
         <div class="toggle-container" title="Bắt đầu / Dừng bài tập" style="margin-left: auto;">
           <label class="toggle-switch">
             <input type="checkbox" id="actionToggle">
@@ -127,11 +129,12 @@
           style="width: 100%; padding: 8px; border: 1px dashed var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary);">
       </div>
       <div style="text-align: left; margin-bottom: 20px;">
-        <!-- [CẬP NHẬT] HỖ TRỢ FILE MP4 -->
         <label style="display:block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted)">2. File Media
-          (.mp3, .wav, .mp4)</label>
-        <input type="file" id="dictationAudioInput" accept="audio/*, video/mp4"
-          style="width: 100%; padding: 8px; border: 1px dashed var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary);">
+          (Chọn 1 trong 2)</label>
+        <input type="file" id="dictationAudioInput" accept="audio/*, video/mp4" title="Tải file MP3 hoặc MP4 từ máy"
+          style="width: 100%; padding: 8px; border: 1px dashed var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary); margin-bottom: 8px;">
+        <input type="text" id="dictationYoutubeInput" placeholder="Hoặc dán Link YouTube vào đây..."
+          style="width: 100%; padding: 8px; border: 1px dashed var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary); outline: none;">
       </div>
       <div style="margin-bottom: 20px; text-align: left;">
         <label class="toggle-container">
@@ -184,9 +187,21 @@
   <div id="globalTooltip"></div>
   <div id="floatingHighlightBtn" class="floating-btn hidden">✨ Lưu từ</div>
 
-  <!-- KHUNG VIDEO TỐI GIẢN (FLOATING) -->
+  <div id="vocabModal" class="modal hidden">
+    <div class="modal-content" style="position: relative;">
+      <h2 style="margin-bottom:15px; color:var(--accent-color)">📝 Từ vựng</h2>
+      <ul id="vocabList" style="list-style:none; padding:0; max-height:40vh; overflow-y:auto; margin-bottom:20px;"></ul>
+      <div style="text-align:center">
+        <button id="vocabExportBtn" class="btn-icon"
+          style="background:var(--accent-gradient); color:white; border:none">📥 Tải về (.txt)</button>
+      </div>
+      <button id="vocabCloseBtn" class="btn-icon"
+        style="position:absolute; top:15px; right:15px; padding: 4px 10px;">✕</button>
+    </div>
+  </div>
+
+  <!-- KHUNG VIDEO TỐI GIẢN (FLOATING) CHỨA CẢ MP4 VÀ YOUTUBE -->
   <div id="videoContainer" class="floating-video hidden">
-    <!-- Nút nắm kéo thả (Chỉ hiện khi hover) -->
     <div id="videoDragHandle" class="video-drag-handle" title="Bấm giữ để di chuyển video">
       <svg viewBox="0 0 24 24" width="18" height="18" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"
         stroke-linejoin="round">
@@ -199,6 +214,7 @@
       </svg>
     </div>
     <video id="videoPlayer" controls></video>
+    <div id="youtubePlayerPlaceholder" style="width: 100%; height: 100%;"></div>
   </div>
 
   <script type="module" src="/src/main.js"></script>

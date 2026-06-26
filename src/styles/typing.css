@@ -404,16 +404,18 @@ select {
     resize: horizontal;
 }
 
-/* XÓA BỎ LỖI BỊ KẸT CHIỀU CAO DO CODE CŨ SÓT LẠI */
+/* KHUNG VIDEO CHUNG (MP4 & YOUTUBE) */
 .floating-video video,
-#videoPlayer {
+#videoPlayer,
+#youtubePlayerPlaceholder {
     width: 100% !important;
     height: auto !important;
     max-height: none !important;
-    /* PHÉP THUẬT NẰM Ở ĐÂY: Phá bỏ trần 180px */
     display: block;
     background: #000;
     outline: none;
+    aspect-ratio: 16/9;
+    /* Ép Youtube luôn theo khung chuẩn 16:9 */
 }
 
 /* Nút tàng hình dùng để kéo video đi nơi khác */
