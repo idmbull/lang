@@ -34,7 +34,15 @@ export class YouTubePlayer {
             } else {
                 this.player = new window.YT.Player(this.containerId, {
                     videoId: videoId,
-                    playerVars: { 'controls': 1, 'rel': 0, 'showinfo': 0, 'modestbranding': 1, 'disablekb': 1 },
+                    playerVars: {
+                        'controls': 0,          // Ẩn hoàn toàn thanh điều khiển tua video
+                        'rel': 0,               // Không hiện video liên quan ở cuối
+                        'modestbranding': 1,    // Ẩn bớt logo YouTube
+                        'disablekb': 1,         // Khóa phím tắt bàn phím của YouTube
+                        'fs': 0,                // Ẩn nút toàn màn hình
+                        'iv_load_policy': 3,    // Ẩn quảng cáo, chú thích nổi
+                        'playsinline': 1
+                    },
                     events: {
                         'onReady': () => {
                             this.isReady = true;
@@ -48,8 +56,6 @@ export class YouTubePlayer {
                 });
             }
             this.pausedAt = 0;
-            const container = document.getElementById('videoContainer');
-            if (container) container.classList.remove('hidden');
         };
 
         if (window.YT && window.YT.Player) initPlayer();
@@ -58,7 +64,9 @@ export class YouTubePlayer {
 
     setVolume(v) {
         this.currentVolume = Math.min(100, Math.max(0, v * 20));
-        if (this.isReady && this.player) this.player.setVolume(this.currentVolume);
+        if (this.isReady && this.player && typeof this.player.setVolume === 'function') {
+            this.player.setVolume(this.currentVolume);
+        }
     }
 
     stop() {
@@ -71,7 +79,9 @@ export class YouTubePlayer {
     pause() {
         if (!this.isReady || !this.player || typeof this.player.pauseVideo !== 'function') return;
         this.player.pauseVideo();
-        this.pausedAt = this.player.getCurrentTime();
+        if (typeof this.player.getCurrentTime === 'function') {
+            this.pausedAt = this.player.getCurrentTime();
+        }
         if (this.checkInterval) clearInterval(this.checkInterval);
     }
 

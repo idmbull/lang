@@ -88,7 +88,6 @@
           <button id="dictationPlayAllBtn" class="btn-media" title="Phát/Dừng (Toàn bài)">▶</button>
         </div>
 
-        <!-- margin-left: auto giúp đẩy nút Start sát về lề phải -->
         <div class="toggle-container" title="Bắt đầu / Dừng bài tập" style="margin-left: auto;">
           <label class="toggle-switch">
             <input type="checkbox" id="actionToggle">
@@ -119,15 +118,18 @@
     <textarea id="textInput" spellcheck="false" autocomplete="off"></textarea>
   </div>
 
+  <!-- Modal Tải bài tập -->
   <div id="dictationModal" class="modal hidden">
     <div class="modal-content" style="padding: 30px; width: 400px; text-align: center; position: relative;">
       <h2 style="margin-bottom: 20px; color: var(--accent-color);">Tải bài tập (Dictation)</h2>
+
       <div style="text-align: left; margin-bottom: 15px;">
         <label style="display:block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted)">1. File
           Text/Markdown (.txt, .md)</label>
         <input type="file" id="dictationSubInput" accept=".txt,.tsv,.md"
           style="width: 100%; padding: 8px; border: 1px dashed var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary);">
       </div>
+
       <div style="text-align: left; margin-bottom: 20px;">
         <label style="display:block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted)">2. File Media
           (Chọn 1 trong 2)</label>
@@ -136,12 +138,14 @@
         <input type="text" id="dictationYoutubeInput" placeholder="Hoặc dán Link YouTube vào đây..."
           style="width: 100%; padding: 8px; border: 1px dashed var(--border-color); border-radius: 4px; background: var(--section-bg); color: var(--text-primary); outline: none;">
       </div>
+
       <div style="margin-bottom: 20px; text-align: left;">
         <label class="toggle-container">
           <input type="checkbox" id="dictationBlindMode" style="margin-right: 8px;">
           Bật chế độ Blind Mode (Giấu chữ)
         </label>
       </div>
+
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button id="dictationCancelBtn" class="btn-icon">Hủy</button>
         <button id="dictationStartBtn" class="btn-icon"
@@ -150,6 +154,7 @@
     </div>
   </div>
 
+  <!-- Modal Kết quả -->
   <div id="resultModal" class="modal hidden">
     <div class="modal-content" style="text-align: center;">
       <h2 style="color: var(--accent-color); margin-bottom: 10px;">🎉 Hoàn thành!</h2>
@@ -183,10 +188,11 @@
     </div>
   </div>
 
-  <!-- CÁC MODAL KHÁC Ở ĐÂY ... -->
+  <!-- Các tiện ích nổi -->
   <div id="globalTooltip"></div>
   <div id="floatingHighlightBtn" class="floating-btn hidden">✨ Lưu từ</div>
 
+  <!-- Modal Từ vựng -->
   <div id="vocabModal" class="modal hidden">
     <div class="modal-content" style="position: relative;">
       <h2 style="margin-bottom:15px; color:var(--accent-color)">📝 Từ vựng</h2>
@@ -202,6 +208,7 @@
 
   <!-- KHUNG VIDEO TỐI GIẢN (FLOATING) CHỨA CẢ MP4 VÀ YOUTUBE -->
   <div id="videoContainer" class="floating-video hidden">
+    <!-- Nút tàng hình hỗ trợ kéo thả -->
     <div id="videoDragHandle" class="video-drag-handle" title="Bấm giữ để di chuyển video">
       <svg viewBox="0 0 24 24" width="18" height="18" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"
         stroke-linejoin="round">
@@ -217,6 +224,7 @@
     <div id="youtubePlayerPlaceholder" style="width: 100%; height: 100%;"></div>
   </div>
 
+  <!-- Lõi điều khiển toàn ứng dụng -->
   <script type="module" src="/src/main.js"></script>
 </body>
 
