@@ -23,21 +23,34 @@ function walk(dir) {
                 date = fs.statSync(fullPath).mtimeMs;
             }
 
-            // 2. Quét Audio: Đọc nhanh nội dung file xem có chứa Timestamp không (Ví dụ: 3.200 7.860)
             const content = fs.readFileSync(fullPath, 'utf8');
-            const hasAudio = /^([\d.]+)\s+([\d.]+)/m.test(content);
+            let mediaType = 'text';
 
-            // Lưu cả ngày giờ và cờ Audio
+            // 2. Quét YAML Frontmatter để tìm link Youtube/Video/Audio
+            const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+            if (frontmatterMatch) {
+                const yaml = frontmatterMatch[1].toLowerCase();
+                if (yaml.includes('youtube:')) mediaType = 'youtube';
+                else if (yaml.includes('video:')) mediaType = 'video';
+                else if (yaml.includes('audio:')) mediaType = 'audio';
+            }
+
+            // 3. Nếu không có YAML, quét xem có Timestamp (0.0 5.2) không
+            if (mediaType === 'text' && /^([\d.]+)\s+([\d.]+)/m.test(content)) {
+                mediaType = 'audio';
+            }
+
+            // Lưu dữ liệu để Frontend đọc
             metadata[normalizedPath] = {
                 date: date,
-                hasAudio: hasAudio
+                mediaType: mediaType
             };
         }
     }
 }
 
-console.log("Đang quét siêu dữ liệu (Ngày giờ & Audio)...");
+console.log("Đang quét siêu dữ liệu (Ngày giờ & Media Type)...");
 walk('library');
 
 fs.writeFileSync('src/file-dates.json', JSON.stringify(metadata, null, 2));
-console.log("✅ Đã cập nhật xong siêu dữ liệu!");
+console.log("✅ Đã cập nhật xong siêu dữ liệu bài học!");

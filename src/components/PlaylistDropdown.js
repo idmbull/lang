@@ -1,5 +1,4 @@
 import { EventBus } from '../core/eventBus.js';
-// Import file chứa metadata (ngày giờ + audio) do script tự sinh ra
 import fileMetadata from '../file-dates.json';
 
 export class PlaylistDropdown {
@@ -53,7 +52,6 @@ export class PlaylistDropdown {
                 if (isFileA && !isFileB) return 1;
 
                 if (isFileA && isFileB) {
-                    // Đã đổi cấu trúc đọc json: fileMetadata[...].date
                     const timeA = fileMetadata[node[a]] ? fileMetadata[node[a]].date : 0;
                     const timeB = fileMetadata[node[b]] ? fileMetadata[node[b]].date : 0;
                     return timeB - timeA;
@@ -71,9 +69,12 @@ export class PlaylistDropdown {
                     label.className = 'tree-label is-file selectable-file';
                     const cleanName = key.replace('.md', '');
 
-                    // KIỂM TRA ICON AUDIO
-                    const hasAudio = fileMetadata[node[key]] ? fileMetadata[node[key]].hasAudio : false;
-                    const icon = hasAudio ? '🎧' : '📄';
+                    // [TÍNH NĂNG MỚI] Gắn Icon dựa trên siêu dữ liệu
+                    const mType = fileMetadata[node[key]] ? fileMetadata[node[key]].mediaType : 'text';
+                    let icon = '📄';
+                    if (mType === 'youtube') icon = '🟥';
+                    else if (mType === 'video') icon = '🎬';
+                    else if (mType === 'audio') icon = '🎧';
 
                     label.innerHTML = `<span class="tree-icon">${icon}</span> ${cleanName}`;
 
