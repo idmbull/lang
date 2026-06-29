@@ -278,7 +278,6 @@ select {
 /* ================= KHOẢNG CÁCH ĐOẠN VĂN ================= */
 .text-display p {
     margin: 1.5em 0;
-    /* Tạo khoảng trống giữa các đoạn văn */
 }
 
 .text-display span {
@@ -288,8 +287,7 @@ select {
 
 /* ================= XỬ LÝ DẤU ENTER (XUỐNG DÒNG) ================= */
 .newline-char {
-    color: transparent;
-    /* Tàng hình dấu Enter mặc định */
+    color: transparent !important;
     display: inline-block;
     min-width: 0.5em;
     height: 1.2em;
@@ -299,21 +297,23 @@ select {
     line-height: 1;
 }
 
-/* Chỉ hiện dấu Enter khi gõ sai hoặc con trỏ đang nháy tới */
 .newline-char.current {
     color: var(--text-light) !important;
-    background-color: var(--accent-color);
+    background-color: var(--accent-color) !important;
     opacity: 1;
     padding: 0 2px;
 }
 
 .newline-char.incorrect {
     color: var(--incorrect-color) !important;
-    background-color: var(--incorrect-bg);
+    background-color: var(--incorrect-bg) !important;
+    opacity: 1;
 }
 
-.newline-char .correct {
-    color: transparent;
+.newline-char.correct {
+    color: transparent !important;
+    background-color: transparent !important;
+    opacity: 0 !important;
 }
 
 /* ================= CÁC THÀNH PHẦN KHÁC ================= */
@@ -354,7 +354,7 @@ select {
     padding-top: 0 !important;
 }
 
-/* ================= IME TOOLTIP (GÕ TIẾNG TRUNG/HÀN) ================= */
+/* ================= IME TOOLTIP ================= */
 .ime-tooltip {
     position: fixed;
     z-index: 10000;
@@ -388,8 +388,6 @@ select {
 }
 
 /* ================= DOCKING LAYOUT (SPLIT SCREEN) ================= */
-
-/* Khung bọc Video (Giờ là độc lập) */
 .video-box {
     background: #000;
     border-radius: 12px;
@@ -401,7 +399,6 @@ select {
     border: 1px solid var(--border-color);
 }
 
-/* THANH CÔNG CỤ ĐIỀU KHIỂN VIDEO (Hover mới hiện) */
 .video-toolbar {
     position: absolute;
     top: 5px;
@@ -419,7 +416,6 @@ select {
     opacity: 1;
 }
 
-/* Cục nắm kéo thả */
 .video-drag-handle {
     width: 32px;
     height: 32px;
@@ -436,7 +432,6 @@ select {
     cursor: grabbing;
 }
 
-/* Cụm nút Ghim (Trái/Phải/Trên/Nổi) */
 .dock-controls {
     display: flex;
     gap: 5px;
@@ -444,28 +439,35 @@ select {
     padding: 4px 8px;
     border-radius: 20px;
     backdrop-filter: blur(4px);
+    align-items: center;
 }
 
 .dock-btn {
     background: none;
     border: none;
-    font-size: 1rem;
     cursor: pointer;
-    opacity: 0.7;
-    transition: 0.2s;
+    color: white;
+    opacity: 0.5;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2px;
 }
 
 .dock-btn:hover {
     opacity: 1;
     transform: scale(1.1);
+    color: var(--accent-color);
 }
 
 .dock-btn.active {
     opacity: 1;
-    text-shadow: 0 0 5px white;
+    color: var(--accent-color);
+    filter: drop-shadow(0 0 3px var(--accent-color));
 }
 
-/* Định dạng thẻ video bên trong */
+/* ================= CHẾ ĐỘ YOUTUBE CLEAN / NORMAL ================= */
 .video-box video,
 #youtubePlayerPlaceholder {
     width: 100% !important;
@@ -474,13 +476,20 @@ select {
     background: #000;
     outline: none;
     border: none;
-    pointer-events: none;
     flex: 1;
 }
 
-/* ================= TRẠNG THÁI LAYOUT ================= */
+/* Chế độ Clean: Khóa chuột để video luôn tàng hình UI */
+.video-box.yt-clean #youtubePlayerPlaceholder {
+    pointer-events: none;
+}
 
-/* 1. Trôi nổi (Floating) */
+/* Chế độ Normal: Mở khóa để chỉnh chất lượng */
+.video-box.yt-normal #youtubePlayerPlaceholder {
+    pointer-events: auto;
+}
+
+/* ================= TRẠNG THÁI LAYOUT ================= */
 .layout-float .video-box {
     position: fixed;
     bottom: 30px;
@@ -497,7 +506,6 @@ select {
     aspect-ratio: 16/9;
 }
 
-/* 2. Ghim Trái & Phải (Split Screen) */
 .layout-left {
     flex-direction: row;
 }
@@ -512,18 +520,15 @@ select {
     min-width: 300px;
     height: 92vh;
     max-height: 900px;
-    /* Bằng đúng chiều cao của Container chữ */
     resize: horizontal;
     position: relative;
 }
 
-/* Khi đã ghim Trái/Phải, nút kéo thả tự do bị tắt đi */
 .layout-left .video-drag-handle,
 .layout-right .video-drag-handle {
     display: none;
 }
 
-/* 3. Ghim Lên Trên (Top) */
 .layout-top {
     flex-direction: column;
 }
@@ -531,7 +536,6 @@ select {
 .layout-top .video-box {
     width: 100%;
     max-width: 850px;
-    /* Bằng đúng chiều rộng của Container chữ */
     height: 250px;
     min-height: 150px;
     resize: vertical;

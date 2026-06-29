@@ -35,7 +35,7 @@ export class YouTubePlayer {
                 this.player = new window.YT.Player(this.containerId, {
                     videoId: videoId,
                     playerVars: {
-                        'controls': 0,          // Ẩn hoàn toàn thanh điều khiển tua video
+                        'controls': 1,          // [ĐÃ SỬA TỪ 0 -> 1]: Bật thanh điều khiển của Youtube
                         'rel': 0,               // Không hiện video liên quan ở cuối
                         'modestbranding': 1,    // Ẩn bớt logo YouTube
                         'disablekb': 1,         // Khóa phím tắt bàn phím của YouTube

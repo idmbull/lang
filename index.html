@@ -12,7 +12,7 @@
   <div id="appLayout" class="app-layout layout-float">
 
     <!-- KHUNG VIDEO SIBLING (NẰM NGANG HÀNG VỚI CONTAINER) -->
-    <div id="videoContainer" class="video-box hidden">
+    <div id="videoContainer" class="video-box hidden yt-clean">
       <div class="video-toolbar">
         <div id="videoDragHandle" class="video-drag-handle" title="Bấm giữ để di chuyển video">
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="white" stroke-width="2" fill="none">
@@ -24,18 +24,52 @@
             <line x1="12" y1="2" x2="12" y2="22"></line>
           </svg>
         </div>
+        <!-- Bộ nút điều khiển Layout Video (Dùng SVG nét thanh) -->
         <div class="dock-controls">
-          <button class="dock-btn" data-dock="top" title="Ghim lên trên">⬆️</button>
-          <button class="dock-btn" data-dock="left" title="Ghim bên trái">⬅️</button>
-          <button class="dock-btn" data-dock="right" title="Ghim bên phải">➡️</button>
-          <button class="dock-btn" data-dock="float" title="Trôi nổi tự do">🔲</button>
+          <!-- Nút bật/tắt chuột cho Youtube -->
+          <button id="ytModeToggleBtn" class="dock-btn" title="Chế độ YouTube: Clean (Khóa chuột)">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path>
+              <path d="M13 13l6 6"></path>
+            </svg>
+          </button>
+          <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.3); margin: 0 4px;"></div>
+          <!-- 4 nút dock -->
+          <button class="dock-btn" data-dock="top" title="Ghim lên trên">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+            </svg>
+          </button>
+          <button class="dock-btn" data-dock="left" title="Ghim bên trái">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+          </button>
+          <button class="dock-btn" data-dock="right" title="Ghim bên phải">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+          </button>
+          <button class="dock-btn active" data-dock="float" title="Trôi nổi tự do">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <rect x="8" y="8" width="8" height="8" rx="1" ry="1"></rect>
+            </svg>
+          </button>
         </div>
       </div>
       <video id="videoPlayer" controls></video>
       <div id="youtubePlayerPlaceholder" style="width: 100%; height: 100%;"></div>
     </div>
 
-    <!-- CONTAINER CHÍNH (GIỮ NGUYÊN BẢN GỐC 100%) -->
+    <!-- CONTAINER CHÍNH -->
     <div class="container">
       <header>
         <h1 id="pageTitle">Reading Practice</h1>
@@ -76,23 +110,19 @@
           </div>
           <div class="toggle-container" title="Âm thanh gõ phím">
             <label class="toggle-switch"><input type="checkbox" id="soundToggle" checked><span
-                class="slider"></span></label>
-            <span>Sound</span>
+                class="slider"></span></label><span>Sound</span>
           </div>
           <div class="toggle-container" title="Phát âm từ vựng">
             <label class="toggle-switch"><input type="checkbox" id="autoPronounceToggle" checked><span
-                class="slider"></span></label>
-            <span>Speak</span>
+                class="slider"></span></label><span>Speak</span>
           </div>
           <div class="toggle-container" title="Chế độ không nhìn">
             <label class="toggle-switch"><input type="checkbox" id="blindModeToggle"><span
-                class="slider"></span></label>
-            <span>Blind</span>
+                class="slider"></span></label><span>Blind</span>
           </div>
           <div class="toggle-container" title="Hiện chú thích">
             <label class="toggle-switch"><input type="checkbox" id="autoTooltipToggle" checked><span
-                class="slider"></span></label>
-            <span>Tips</span>
+                class="slider"></span></label><span>Tips</span>
           </div>
           <div class="mini-volume-control hidden" id="volumeControl" title="Âm lượng đọc">
             <input type="range" id="dictationVolume" min="0" max="5" step="0.1" value="1">
@@ -111,8 +141,7 @@
         <input type="file" id="fileLoader" accept=".txt,.md,.json,.tsv,.mp3,.mp4" hidden multiple>
         <button id="fileLoaderBtn" class="btn-icon">📂 Load</button>
         <div class="custom-dropdown" id="playlistDropdown">
-          <div class="dropdown-trigger" id="playlistTrigger">
-            <span>Chọn bài tập...</span><span class="arrow">▼</span>
+          <div class="dropdown-trigger" id="playlistTrigger"><span>Chọn bài tập...</span><span class="arrow">▼</span>
           </div>
           <div class="dropdown-content hidden" id="playlistContent"></div>
         </div>
@@ -126,7 +155,7 @@
     <textarea id="textInput" spellcheck="false" autocomplete="off"></textarea>
   </div>
 
-  <!-- Modal Load file Text + MP3 từ máy tính -->
+  <!-- Modal Load file -->
   <div id="dictationModal" class="modal hidden">
     <div class="modal-content" style="padding: 30px; width: 400px; text-align: center; position: relative;">
       <h2 style="margin-bottom: 20px; color: var(--accent-color);">Tải bài tập (Dictation)</h2>
@@ -209,7 +238,5 @@
 
   <script type="module" src="/src/main.js"></script>
 </body>
-
-</html>
 
 </html>
