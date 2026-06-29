@@ -166,10 +166,9 @@ function updatePlayIcon(isPlaying) {
   isGlobalPlaying = isPlaying;
   const btn = document.getElementById('dictationPlayAllBtn');
   if (btn) {
-    btn.innerHTML = isPlaying
-      ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>'
-      : '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+    btn.textContent = isPlaying ? "⏸" : "▶";
     btn.style.color = isPlaying ? "var(--correct-color)" : "inherit";
+    btn.style.borderColor = isPlaying ? "var(--correct-color)" : "var(--border-color)";
   }
 }
 
@@ -263,13 +262,6 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
 
   let mediaType = null;
 
-  // XÁC ĐỊNH MỨC ƯU TIÊN LINK MEDIA:
-  // 1. Link YouTube lấy từ Metadata của File Markdown
-  // 2. Link Audio/Video MP4 lấy từ Metadata của File Markdown
-  // 3. Link YouTube do người dùng nhập từ Modal tải file
-  // 4. File Video/Audio do người dùng chọn từ máy tính
-  // 5. File MP3 tải từ kho mặc định GitHub
-
   let finalYoutubeUrl = parsed.metadata.youtube || youtubeUrl;
   let metadataVideoUrl = parsed.metadata.video;
   let metadataAudioUrl = parsed.metadata.audio;
@@ -277,46 +269,40 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   if (finalYoutubeUrl) {
     mediaType = 'youtube';
     youtubePlayer.load(finalYoutubeUrl);
-    console.log("✅ Đã nạp YouTube (ưu tiên)!");
+    console.log("✅ Đã nạp YouTube!");
   }
   else if (metadataVideoUrl) {
     mediaType = 'video';
     videoPlayer.load(metadataVideoUrl);
-    console.log("✅ Đã nạp Video MP4 (từ Metadata)!");
+    console.log("✅ Đã nạp Video MP4!");
   }
   else if (metadataAudioUrl) {
-    console.log("Đang tải MP3 từ URL Metadata...");
     try {
       const resp = await fetch(metadataAudioUrl);
       if (resp.ok) {
         mediaType = 'audio';
         await audioPlayer.load(await resp.arrayBuffer());
       }
-    } catch (e) { console.error("Lỗi tải MP3 từ Metadata (Có thể do CORS):", e); }
+    } catch (e) { }
   }
   else if (mediaFile) {
     mediaType = mediaFile.type.startsWith('video') ? 'video' : 'audio';
     if (mediaType === 'video') {
       currentMediaUrl = URL.createObjectURL(mediaFile);
       videoPlayer.load(currentMediaUrl);
-      console.log("✅ Đã nạp Video MP4 từ thiết bị!");
     } else {
       await audioPlayer.load(await mediaFile.arrayBuffer());
-      console.log("✅ Đã nạp Audio MP3 từ thiết bị!");
     }
   }
   else if (path && parsed.segments && parsed.segments.length > 0) {
-    console.log(`Đang tải file MP3 mặc định cho bài: ${title}...`);
     try {
       const mp3Url = `${AUDIO_BASE}${encodeURIComponent(title)}.mp3`;
       const resp = await fetch(mp3Url);
       if (resp.ok) {
         mediaType = 'audio';
         await audioPlayer.load(await resp.arrayBuffer());
-      } else {
-        console.warn("Không tìm thấy MP3 mặc định.");
       }
-    } catch (e) { console.error("Lỗi tải MP3:", e); }
+    } catch (e) { }
   }
 
   Store.setSourceUnified(parsed, mediaType, null, path);
@@ -330,10 +316,12 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   if (isBlind) applyBlindModeUI(0);
 
   const mediaControls = document.getElementById('mediaControls');
+  const volumeControl = document.getElementById('volumeControl');
   const videoContainer = document.getElementById('videoContainer');
 
   if (mediaType !== null) {
     mediaControls.classList.remove('hidden');
+    volumeControl.classList.remove('hidden');
     document.getElementById('headerSubtitle').textContent = "Nghe kỹ - Gõ chính xác";
 
     if (mediaType === 'youtube') {
@@ -349,12 +337,14 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
     }
   } else {
     mediaControls.classList.add('hidden');
+    volumeControl.classList.add('hidden');
     videoContainer.classList.add('hidden');
     document.getElementById('headerSubtitle').textContent = "Tập trung - Thư giãn - Phát triển";
   }
 
   words.tokens.slice(0, 5).forEach(word => AudioResolver.preloadWord(word));
   scroller.reset();
+
   TimerService.stop();
   updatePlayIcon(false);
   ['time', 'wpm', 'errors'].forEach(id => document.getElementById(id).textContent = id === 'errors' ? '0' : '0s');
@@ -372,7 +362,6 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
 
 EventBus.on('app:load_lesson', (data) => loadLessonToApp(data.title, data.content, data.path));
 EventBus.on('app:load_local_lesson', (data) => loadLessonToApp(data.title, data.content, null, data.mediaFile, data.enableBlindMode, data.youtubeUrl));
-
 EventBus.on(EVENTS.EXERCISE_START, () => {
   const actionToggle = document.getElementById('actionToggle');
   if (actionToggle && !actionToggle.checked) toggleExercise(true);
@@ -408,9 +397,8 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       Store.setCurrentSegment(newSegIdx);
       const seg = src.segments[newSegIdx];
       if (seg) {
-        if (MediaSystem.isLoaded()) {
-          MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
-        } else if (document.getElementById('autoPronounceToggle').checked && Store.getMediaType() !== 'video' && Store.getMediaType() !== 'youtube') {
+        if (MediaSystem.isLoaded()) MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
+        else if (document.getElementById('autoPronounceToggle').checked && Store.getMediaType() !== 'video' && Store.getMediaType() !== 'youtube') {
           AudioResolver.playNativeTTS(seg.text);
         }
       }
@@ -428,6 +416,7 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
   if (data.isComplete) {
     toggleExercise(false);
     document.getElementById('textInput').disabled = true;
+
     document.getElementById('resAcc').textContent = accuracy + '%';
     document.getElementById('resWpm').textContent = document.getElementById('wpm').textContent;
     document.getElementById('resTime').textContent = document.getElementById('time').textContent;
@@ -436,8 +425,7 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
   }
 });
 
-const actionToggle = document.getElementById('actionToggle');
-if (actionToggle) actionToggle.addEventListener('change', (e) => toggleExercise(e.target.checked));
+document.getElementById('actionToggle').addEventListener('change', (e) => toggleExercise(e.target.checked));
 
 // =================================================================
 // 5. PHÍM TẮT & PHÁT ÂM (DOUBLE CLICK / TAB)
@@ -474,6 +462,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === "Tab") {
     e.preventDefault();
     if (e.repeat) return;
+
     if (shortcutTimer) {
       clearTimeout(shortcutTimer);
       shortcutTimer = null;
@@ -532,18 +521,55 @@ document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
 });
 
 // =================================================================
-// 6. DRAG & DROP KHUNG VIDEO
+// 6. QUẢN LÝ DOCKING LAYOUT VÀ DRAG VIDEO
 // =================================================================
+const appLayout = document.getElementById('appLayout');
 const videoContainer = document.getElementById('videoContainer');
 const dragHandle = document.getElementById('videoDragHandle');
+const dockBtns = document.querySelectorAll('.dock-btn');
+
+let currentLayout = localStorage.getItem('pref_layout') || 'float';
+
+function setLayout(layoutType) {
+  currentLayout = layoutType;
+  localStorage.setItem('pref_layout', layoutType);
+
+  // Đổi class của App Layout để Flexbox tự động chia màn hình
+  appLayout.className = `app-layout layout-${layoutType}`;
+
+  // Cập nhật trạng thái cho các nút bấm (Sáng viền)
+  dockBtns.forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.dock-btn[data-dock="${layoutType}"]`)?.classList.add('active');
+
+  // Nếu bấm ghim Trái/Phải/Trên thì phải dọn dẹp các thông số top/left rác do lúc kéo thả (Float) tạo ra
+  if (layoutType !== 'float') {
+    videoContainer.style.left = ''; videoContainer.style.top = '';
+    videoContainer.style.bottom = ''; videoContainer.style.right = '';
+  }
+
+  document.getElementById('textInput').focus();
+}
+
+// Chạy khởi tạo Layout đã lưu
+setLayout(currentLayout);
+
+// Lắng nghe bấm 4 nút Dock
+dockBtns.forEach(btn => {
+  btn.onclick = () => setLayout(btn.dataset.dock);
+});
+
+// LOGIC DRAG & DROP (Chỉ cho phép khi đang ở chế độ Trôi nổi - Float)
 let isDragging = false;
 let startX, startY, initialLeft, initialTop;
 
 if (dragHandle && videoContainer) {
   dragHandle.addEventListener('mousedown', (e) => {
+    if (currentLayout !== 'float') return; // Đã ghim thì cấm kéo
+
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
+
     const rect = videoContainer.getBoundingClientRect();
     initialLeft = rect.left;
     initialTop = rect.top;
@@ -555,6 +581,7 @@ if (dragHandle && videoContainer) {
 
     document.body.style.userSelect = 'none';
 
+    // Che youtube lại để con trỏ chuột không bị sụp hố khi kéo qua youtube
     const iframeBlocker = document.createElement('div');
     iframeBlocker.id = 'iframeBlocker';
     iframeBlocker.style = 'position:absolute; top:0; left:0; width:100%; height:100%; z-index:9999;';
