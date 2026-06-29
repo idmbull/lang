@@ -5,9 +5,17 @@ const TIMESTAMP_REGEX = /^([\d.]+)\s+([\d.]+)/;
 function cleanForTyping(text) {
     if (!text) return "";
     let s = text;
-    s = s.replace(/\^\[[^\]]+\]/g, '');
-    s = s.replace(/`[^`]+`/g, '');
-    s = s.replace(/[*_~]+/g, '');
+    s = s.replace(/\^\[[^\]]+\]/g, ''); // Bỏ footnote
+    s = s.replace(/`[^`]+`/g, '');      // Bỏ skip text
+
+    // [ĐÃ SỬA LỖI Ở ĐÂY]: Chỉ gỡ bỏ định dạng Markdown khi nó là một cặp hợp lệ.
+    // Không xóa mù quáng các dấu * hoặc _ đứng một mình (phép toán).
+    s = s.replace(/\*\*(.+?)\*\*/g, "$1");
+    s = s.replace(/\*(.+?)\*/g, "$1");
+    s = s.replace(/__(.+?)__/g, "$1");
+    s = s.replace(/_(.+?)_/g, "$1");
+    s = s.replace(/~~(.+?)~~/g, "$1");
+
     s = s.replace(/[\r\n\t]+/g, ' ');
     s = s.replace(/\s+/g, ' ');
     return s;
@@ -60,10 +68,9 @@ function parseDictationLine(line, cleanFunc) {
 
 export const ContentParser = {
     parseUnified(rawContent) {
-        let contentToParse = rawContent.trimStart(); // Xóa dấu cách thừa ở đầu file
+        let contentToParse = rawContent.trimStart();
         const metadata = {};
 
-        // BỘ LỌC TÌM METADATA (Lấy link Youtube, Video, Audio ẩn)
         const frontmatterMatch = contentToParse.match(/^---\r?\n([\s\S]*?)\r?\n---(\r?\n|$)/);
         if (frontmatterMatch) {
             const yamlBlock = frontmatterMatch[1];
@@ -74,7 +81,6 @@ export const ContentParser = {
                     metadata[key.trim().toLowerCase()] = valueParts.join(':').trim();
                 }
             });
-            // Cắt bỏ đoạn --- ra khỏi nội dung để web không in ra màn hình
             contentToParse = contentToParse.replace(frontmatterMatch[0], '').trimStart();
         }
 
@@ -84,7 +90,7 @@ export const ContentParser = {
         const result = {
             title: "", text: "", html: "", language: language,
             segments: [], charStarts: [],
-            metadata: metadata // Kẹp link youtube vào biến này gửi đi
+            metadata: metadata
         };
 
         let blocks = [];
