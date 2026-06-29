@@ -399,47 +399,57 @@ select {
     border: 1px solid var(--border-color);
 }
 
-.video-toolbar {
+.video-control-widget {
     position: absolute;
-    top: 5px;
-    right: 5px;
-    left: 5px;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 20px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    padding: 2px;
+    backdrop-filter: blur(4px);
+    z-index: 100;
     opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 10;
+    transition: opacity 0.3s;
 }
 
-.video-box:hover .video-toolbar {
+.video-box:hover .video-control-widget {
     opacity: 1;
 }
 
 .video-drag-handle {
-    width: 32px;
-    height: 32px;
-    background: rgba(0, 0, 0, 0.5);
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: grab;
-    backdrop-filter: blur(4px);
+    flex-shrink: 0;
 }
 
 .video-drag-handle:active {
     cursor: grabbing;
 }
 
-.dock-controls {
+/* Phần menu ẩn trượt ra */
+.dock-collapsible {
     display: flex;
-    gap: 5px;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 4px 8px;
-    border-radius: 20px;
-    backdrop-filter: blur(4px);
     align-items: center;
+    gap: 4px;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-width 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+/* Khi hover vào toàn bộ widget -> Mở rộng Menu */
+.video-control-widget:hover .dock-collapsible {
+    max-width: 150px;
+    opacity: 1;
+    padding-left: 4px;
+    padding-right: 8px;
 }
 
 .dock-btn {
@@ -453,11 +463,12 @@ select {
     justify-content: center;
     align-items: center;
     padding: 2px;
+    flex-shrink: 0;
 }
 
 .dock-btn:hover {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.15);
     color: var(--accent-color);
 }
 
@@ -479,16 +490,6 @@ select {
     flex: 1;
 }
 
-/* Chế độ Clean: Khóa chuột để video luôn tàng hình UI */
-.video-box.yt-clean #youtubePlayerPlaceholder {
-    pointer-events: none;
-}
-
-/* Chế độ Normal: Mở khóa để chỉnh chất lượng */
-.video-box.yt-normal #youtubePlayerPlaceholder {
-    pointer-events: auto;
-}
-
 /* ================= TRẠNG THÁI LAYOUT ================= */
 .layout-float .video-box {
     position: fixed;
@@ -497,9 +498,9 @@ select {
     width: 380px;
     min-width: 250px;
     z-index: 10000;
-    height: auto !important;
-    resize: horizontal;
 }
+
+/* Đã xóa resize */
 
 .layout-float .video-box video,
 .layout-float #youtubePlayerPlaceholder {
@@ -520,14 +521,10 @@ select {
     min-width: 300px;
     height: 92vh;
     max-height: 900px;
-    resize: horizontal;
     position: relative;
 }
 
-.layout-left .video-drag-handle,
-.layout-right .video-drag-handle {
-    display: none;
-}
+/* Đã xóa resize */
 
 .layout-top {
     flex-direction: column;
@@ -538,10 +535,97 @@ select {
     max-width: 850px;
     height: 250px;
     min-height: 150px;
-    resize: vertical;
     position: relative;
 }
 
-.layout-top .video-drag-handle {
+/* Đã xóa resize */
+
+/* --- HỆ THỐNG CUSTOM RESIZE THÔNG MINH --- */
+.resize-handle {
+    position: absolute;
+    z-index: 100;
+    opacity: 0;
+    transition: background 0.2s;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+    background: var(--accent-color);
+    opacity: 0.8;
+}
+
+.handle-l {
+    top: 0;
+    left: -3px;
+    width: 8px;
+    height: 100%;
+    cursor: ew-resize;
+}
+
+.handle-r {
+    top: 0;
+    right: -3px;
+    width: 8px;
+    height: 100%;
+    cursor: ew-resize;
+}
+
+.handle-b {
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    cursor: ns-resize;
+}
+
+.handle-br {
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nwse-resize;
+    background: linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.4) 50%);
+    opacity: 1;
+    /* Hiển thị nhẹ vạch góc */
+}
+
+/* Ẩn hiện Handle tùy theo vị trí Layout */
+.layout-float .handle-l,
+.layout-float .handle-r,
+.layout-float .handle-b {
     display: none;
+}
+
+.layout-float .handle-br {
+    display: block;
+}
+
+.layout-left .handle-l,
+.layout-left .handle-b,
+.layout-left .handle-br {
+    display: none;
+}
+
+.layout-left .handle-r {
+    display: block;
+}
+
+.layout-right .handle-r,
+.layout-right .handle-b,
+.layout-right .handle-br {
+    display: none;
+}
+
+.layout-right .handle-l {
+    display: block;
+}
+
+.layout-top .handle-l,
+.layout-top .handle-r,
+.layout-top .handle-br {
+    display: none;
+}
+
+.layout-top .handle-b {
+    display: block;
 }
