@@ -210,9 +210,12 @@ function applyBlindModeUI(caretPos) {
 function toggleExercise(isStarting) {
   const textInput = document.getElementById('textInput');
   const actionToggle = document.getElementById('actionToggle');
+  const videoBox = document.getElementById('videoContainer'); // Thêm truy xuất videoBox
   if (actionToggle) actionToggle.checked = isStarting;
 
   if (isStarting) {
+    if (videoBox) videoBox.classList.add('is-typing'); // BẬT trạng thái giấu thanh Youtube
+
     document.getElementById('actionLabel').textContent = "Stop";
     document.getElementById('actionLabel').style.color = "var(--incorrect-color)";
     Store.startExercise();
@@ -236,6 +239,8 @@ function toggleExercise(isStarting) {
       document.getElementById('wpm').textContent = wpm;
     });
   } else {
+    if (videoBox) videoBox.classList.remove('is-typing'); // TẮT trạng thái giấu thanh Youtube
+
     document.getElementById('actionLabel').textContent = "Start";
     document.getElementById('actionLabel').style.color = "var(--correct-color)";
     Store.stopExercise();
@@ -563,13 +568,38 @@ function setLayout(layoutType) {
   dockBtns.forEach(btn => btn.classList.remove('active'));
   document.querySelector(`.dock-btn[data-dock="${layoutType}"]`)?.classList.add('active');
 
-  // Xóa kích thước & vị trí Inline khi đổi Layout để Video tự động khôi phục CSS gốc
+  // 1. Xóa kích thước & vị trí Inline khi đổi Layout
   videoContainer.style.width = '';
   videoContainer.style.height = '';
   videoContainer.style.left = '';
   videoContainer.style.top = '';
   videoContainer.style.bottom = '';
   videoContainer.style.right = '';
+
+  // 2. PHỤC HỒI KÍCH THƯỚC/VỊ TRÍ TỪ LOCALSTORAGE
+  if (layoutType === 'left' || layoutType === 'right') {
+    const savedW = localStorage.getItem('pref_video_width');
+    if (savedW) videoContainer.style.width = savedW;
+  }
+  else if (layoutType === 'top') {
+    const savedH = localStorage.getItem('pref_video_height');
+    if (savedH) videoContainer.style.height = savedH;
+  }
+  else if (layoutType === 'float') {
+    const savedFloatW = localStorage.getItem('pref_video_float_width');
+    if (savedFloatW) videoContainer.style.width = savedFloatW;
+
+    const savedPos = localStorage.getItem('pref_video_float_pos');
+    if (savedPos) {
+      try {
+        const pos = JSON.parse(savedPos);
+        videoContainer.style.bottom = 'auto';
+        videoContainer.style.right = 'auto';
+        videoContainer.style.left = pos.left;
+        videoContainer.style.top = pos.top;
+      } catch (e) { }
+    }
+  }
 
   document.getElementById('textInput').focus();
 }
@@ -608,7 +638,13 @@ if (dragHandle && videoContainer) {
 document.querySelectorAll('.resize-handle').forEach(handle => {
   handle.addEventListener('mousedown', (e) => {
     isResizing = true;
-    resizeDir = handle.className; // Lấy tên class (handle-l, handle-r...)
+
+    // KIỂM TRA CHÍNH XÁC CLASS HIỆN TẠI ĐỂ TRÁNH NHẦM LẪN (Fix lỗi Float Resize)
+    if (handle.classList.contains('handle-br')) resizeDir = 'br';
+    else if (handle.classList.contains('handle-b')) resizeDir = 'b';
+    else if (handle.classList.contains('handle-r')) resizeDir = 'r';
+    else if (handle.classList.contains('handle-l')) resizeDir = 'l';
+
     startX = e.clientX; startY = e.clientY;
 
     const rect = videoContainer.getBoundingClientRect();
@@ -642,22 +678,42 @@ document.addEventListener('mousemove', (e) => {
     const dy = e.clientY - startY;
 
     // Tối ưu hướng mở rộng tùy theo cạnh đang cầm
-    if (resizeDir.includes('handle-r')) {
+    if (resizeDir === 'r') {
       videoContainer.style.width = `${Math.max(300, startW + dx)}px`;
-    } else if (resizeDir.includes('handle-l')) {
+    } else if (resizeDir === 'l') {
       videoContainer.style.width = `${Math.max(300, startW - dx)}px`;
-    } else if (resizeDir.includes('handle-b')) {
+    } else if (resizeDir === 'b') {
       videoContainer.style.height = `${Math.max(150, startH + dy)}px`;
-    } else if (resizeDir.includes('handle-br')) {
+    } else if (resizeDir === 'br') {
       videoContainer.style.width = `${Math.max(250, startW + dx)}px`;
       // Handle-br (Trôi nổi) có CSS auto-aspect-ratio nên chỉ cần set Width, Height tự chạy theo.
     }
   }
 });
 
-// 4. Nhả chuột
+// 4. Nhả chuột (Lưu trữ trạng thái)
 document.addEventListener('mouseup', () => {
   if (isDragging || isResizing) {
+
+    // Lưu lại kích thước nếu vừa kéo Resize
+    if (isResizing) {
+      if (currentLayout === 'left' || currentLayout === 'right') {
+        localStorage.setItem('pref_video_width', videoContainer.style.width);
+      } else if (currentLayout === 'top') {
+        localStorage.setItem('pref_video_height', videoContainer.style.height);
+      } else if (currentLayout === 'float') {
+        localStorage.setItem('pref_video_float_width', videoContainer.style.width);
+      }
+    }
+
+    // Lưu lại vị trí (Tọa độ) nếu đang ở dạng Float (Dù là Move hay Resize thì tọa độ đều có thể thay đổi)
+    if (currentLayout === 'float' && videoContainer.style.left) {
+      localStorage.setItem('pref_video_float_pos', JSON.stringify({
+        left: videoContainer.style.left,
+        top: videoContainer.style.top
+      }));
+    }
+
     isDragging = false;
     isResizing = false;
     document.body.style.userSelect = '';
