@@ -14,22 +14,22 @@ youtube: https://www.youtube.com/watch?v=cwHPuU3sHOk
 46.810000	52.080000		More bits per pixel means that more different colors can be used in the image if necessary.
 
 52.720000	54.880000		With eight bits per pixel,
-54.810000	61.060000		a bitmap can have up to 2 to the power 8, that's 256 different colors.
+54.810000	61.060000		a bitmap can have **up to**^[tối đa, lên đến] 2 to the power 8, that's 256 different colors.
 61.370000	64.130000		This 8-bit image looks pretty good,
 64.060000	67.580000		but you might have noticed some banding in the sky.
 68.360000	75.140000		In the previous video of this series, you also saw that we can calculate the amount of memory a bitmap needs
 75.080000	77.780000		by multiplying the number of pixels
 77.730000	80.740000		by the number of bits allocated to each pixel.
 81.150000	89.930000		For example, a bitmap measuring 960 by 640 pixels with a color depth of 8 bits per pixel
-89.910000	92.960000		will take up 600 kilobytes of memory.
+89.910000	92.960000		will **take up**^[chiếm, sử dụng] 600 kilobytes of memory.
 
 94.520000	102.310000		The simplest type of bitmap is saved to secondary storage as a two-dimensional array of pixel data.
 102.500000	107.080000		Each and every pixel is given a number to encode its color.
 107.380000	111.620000		When the color of each and every pixel in an image is encoded separately,
 111.700000	114.340000		it's known as a true color image.
-114.500000	120.420000		Of course, with true color, lots of pixels in an image may well have exactly the same color code.
-121.000000	129.020000		A small amount of metadata also needs to be saved for the benefit of any software that needs to interpret and display the image.
-129.050000	134.114251		This will include the width and height in pixels and the all-important color depth,
+114.500000	120.420000		Of course, with true color, lots of pixels in an image **may well**^[Mức độ chắc chắn của may well cao hơn may thông thường] have exactly the same color code.
+121.000000	129.020000		A small amount of metadata also needs to be saved for the benefit of any software that needs to **interpret**^[to explain the meaning of something] and display the image.
+129.050000	134.114251		This will include the width and height in pixels and the **all-important**^[cực kỳ quan trọng, vô cùng quan trọng] color depth,
 134.080743	138.580000		so the software knows where the information about one particular pixel begins
 138.520000	139.890000		and where it ends.
 
@@ -39,13 +39,13 @@ youtube: https://www.youtube.com/watch?v=cwHPuU3sHOk
 153.260000	159.280000		Notice that the banding in the sky is no longer visible in this 24-bit RGB image.
 159.340000	161.440000		The quality is much better.
 162.340000	169.320000		Describing the color of each pixel with 24 bits depends on a fundamental principle of light.
-169.410000	179.340000		Namely, that you can make pretty much any color you need, including white, by mixing together different amounts of the primary colors: red, green, and blue.
+169.410000	179.340000		Namely, that you can make **pretty much**^[gần như] any color you need, including white, by mixing together different amounts of the primary colors: red, green, and blue.
 179.340000	181.670000		Hence the term RGB.
-182.060000	191.310000		If you've ever seen a rainbow in the sky, then you've seen white light being split into a spectrum of different colors, in essence, the opposite effect.
+182.060000	191.310000		If you've ever seen a rainbow in the sky, then you've seen white light being split into a spectrum of different colors, **in essence**^[về bản chất], the opposite effect.
 
 191.930000	198.570000		In fact, your computer screen relies on this principle because it too is made up of pixels.
 198.660000	207.280000		When magnified, each screen pixel can be seen to consist of three tiny lights: one red, one green, and one blue.
-207.400000	213.660000		These lights are controlled independently for each screen pixel to create the illusion of a single color.
+207.400000	213.660000		These lights are controlled independently for each screen pixel to create the **illusion**^[ảo giác, ảo ảnh] of a single color.
 214.510000	221.000000		In a 24-bit RGB bitmap, the amount of red, green, and blue in each pixel
 220.910000	222.530000		are encoded separately.
 222.690000	226.150000		Each of these three colors is known as a channel.
@@ -69,7 +69,7 @@ youtube: https://www.youtube.com/watch?v=cwHPuU3sHOk
 307.549694	314.318233		This of course can lead to some confusion. 8 bits per channel is actually 24 bits per pixel.
 315.080000	325.180000		A wide range of application software, graphics packages, HTML, and style sheets express colors using hexadecimal codes.
 325.780000	331.758950		A color code is simply the red value, followed by the green value, followed by the blue value,
-331.758950	336.684570		each expressed as a two-digit hexadecimal number for compactness.
+331.758950	336.684570		each expressed as a two-digit hexadecimal number for **compactness**^[tính gọn nhẹ, sự ngắn gọn].
 
 337.380000	338.850000		As said before,
 338.860000	344.690000		when the red, green, and blue values of each and every pixel is encoded individually,
@@ -93,7 +93,7 @@ youtube: https://www.youtube.com/watch?v=cwHPuU3sHOk
 446.110000	456.650000		Although eight bits allows for up to 256 different colors, only 216 of them are likely to look the same in any browser on most computer screens.
 456.840000	462.170000		Saving an image with a web-safe palette will help to ensure consistency of appearance.
 462.590000	471.580000		However, when you take an image containing millions or even thousands of colors and resave it with a much smaller set of colors to choose from,
-471.500000	474.950000		you're bound to lose some of the color information.
+471.500000	474.950000		**you're bound to**^[gần như không tránh khỏi] lose some of the color information.
 475.170000	479.200000		The resaved image can't possibly look as good as the original.
 479.840000	483.200000		In an attempt to maintain the quality of the image,
 483.260000	487.670000		the image editing software can apply a process known as dithering.
@@ -103,7 +103,7 @@ youtube: https://www.youtube.com/watch?v=cwHPuU3sHOk
 504.330000	509.360000		To create the illusion of orange, red and yellow pixels can be matched like this.
 509.400000	511.640000		As long as the pixels are small enough,
 511.600000	513.700000		the human eye will be deceived.
-514.230000	520.070000		However, dithered images tend to have a grainy or speckled appearance when viewed up close.
+514.230000	520.070000		However, dithered images tend to have a **grainy**^[có hạt] or speckled appearance when viewed up close.
 
 522.180000	528.680000		Resaving a 24-bit RGB true color image as an indexed bitmap
 528.690000	531.270000		will usually make the image file smaller.
@@ -111,7 +111,7 @@ youtube: https://www.youtube.com/watch?v=cwHPuU3sHOk
 537.160000	543.540000		Perhaps you want it to download more quickly from your web page, or you're just short of disk space.
 544.080000	550.010836		Resaving a bitmap with fewer colors is classified as lossy compression
 550.010836	553.646412		because the image will lose some of its quality in the process,
-553.629659	556.030000		and this loss is irreversible.
+553.629659	556.030000		and this loss is **irreversible**^[không thể đảo ngược / không thể phục hồi].
 
 558.070000	559.300000		To summarize:
 559.360000	563.970000		True color bitmap images encode the color of each pixel separately.
