@@ -6,7 +6,7 @@ youtube: https://www.youtube.com/watch?v=0KmimFoalTI
 13.710000	19.980000		This very simple image of what might be a cat consists of 256 pixels.
 20.040000	23.569978		16 across and 16 down.
 23.570000	27.240000		And each pixel is either black or white.
-27.870000	32.146488		We can store this information using binary digits
+27.870000	32.040000		We can store this information using binary digits
 31.817413	34.520000		by representing a black pixel with a one
 34.470000	36.640000		and a white pixel with a zero.
 37.103176	40.599595		With 256 pixels in this image,
