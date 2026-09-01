@@ -505,7 +505,7 @@ document.addEventListener('keydown', (e) => {
     if (blindToggle) blindToggle.click();
   }
 
-// Nút Next (Ctrl + Mũi tên Phải)
+  // Nút Next (Ctrl + Mũi tên Phải)
   if (e.ctrlKey && e.code === "ArrowRight") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -540,7 +540,7 @@ document.addEventListener('keydown', (e) => {
     if (currentCaret <= currentSegStart + 2) {
       targetSegIdx = currentSegIdx - 1;
     }
-    
+
     if (targetSegIdx < 0) targetSegIdx = 0;
 
     inputUI.virtualValue = src.text.substring(0, src.charStarts[targetSegIdx]);
@@ -596,42 +596,22 @@ function setLayout(layoutType) {
   localStorage.setItem('pref_layout', layoutType);
 
   appLayout.className = `app-layout layout-${layoutType}`;
+  if (layoutType === 'left' || layoutType === 'right') {
+    appLayout.classList.add('wide-mode');
+  } else {
+    appLayout.classList.remove('wide-mode');
+  }
 
   dockBtns.forEach(btn => btn.classList.remove('active'));
   document.querySelector(`.dock-btn[data-dock="${layoutType}"]`)?.classList.add('active');
 
-  // 1. Xóa kích thước & vị trí Inline khi đổi Layout
-  videoContainer.style.width = '';
-  videoContainer.style.height = '';
+  // [SỬA LỖI Ở ĐÂY]: Xóa SẠCH tọa độ và kích thước cũ bị kẹt do lúc kéo/resize
   videoContainer.style.left = '';
   videoContainer.style.top = '';
   videoContainer.style.bottom = '';
   videoContainer.style.right = '';
-
-  // 2. PHỤC HỒI KÍCH THƯỚC/VỊ TRÍ TỪ LOCALSTORAGE
-  if (layoutType === 'left' || layoutType === 'right') {
-    const savedW = localStorage.getItem('pref_video_width');
-    if (savedW) videoContainer.style.width = savedW;
-  }
-  else if (layoutType === 'top') {
-    const savedH = localStorage.getItem('pref_video_height');
-    if (savedH) videoContainer.style.height = savedH;
-  }
-  else if (layoutType === 'float') {
-    const savedFloatW = localStorage.getItem('pref_video_float_width');
-    if (savedFloatW) videoContainer.style.width = savedFloatW;
-
-    const savedPos = localStorage.getItem('pref_video_float_pos');
-    if (savedPos) {
-      try {
-        const pos = JSON.parse(savedPos);
-        videoContainer.style.bottom = 'auto';
-        videoContainer.style.right = 'auto';
-        videoContainer.style.left = pos.left;
-        videoContainer.style.top = pos.top;
-      } catch (e) { }
-    }
-  }
+  videoContainer.style.width = '';  // Reset chiều ngang
+  videoContainer.style.height = ''; // Reset chiều dọc
 
   document.getElementById('textInput').focus();
 }
