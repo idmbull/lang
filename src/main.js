@@ -412,7 +412,7 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       if (data.caret >= src.charStarts[i]) { newSegIdx = i; break; }
     }
 
-    if (newSegIdx > oldSegIdx) {
+    if (newSegIdx !== oldSegIdx) {
       Store.setCurrentSegment(newSegIdx);
       const seg = src.segments[newSegIdx];
       if (seg) {
@@ -505,6 +505,7 @@ document.addEventListener('keydown', (e) => {
     if (blindToggle) blindToggle.click();
   }
 
+// Nút Next (Ctrl + Mũi tên Phải)
   if (e.ctrlKey && e.code === "ArrowRight") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -515,22 +516,36 @@ document.addEventListener('keydown', (e) => {
     if (currentSegIdx < src.segments.length - 1) {
       const nextSegIdx = currentSegIdx + 1;
       inputUI.virtualValue = src.text.substring(0, src.charStarts[nextSegIdx]);
-      inputUI.processInput();
+    } else {
+      // [FIX LỖI]: Nếu đang ở câu cuối cùng, tua thẳng đến kết thúc bài!
+      inputUI.virtualValue = src.text;
     }
+    inputUI.processInput();
   }
 
+  // Nút Back (Ctrl + Mũi tên Trái)
   if (e.ctrlKey && e.code === "ArrowLeft") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
 
     const src = Store.getSource();
-    let targetSegIdx = src.currentSegment - 1;
+    const currentSegIdx = src.currentSegment;
+    const currentCaret = inputUI.virtualValue.length;
+    const currentSegStart = src.charStarts[currentSegIdx];
+
+    // [NÂNG CẤP THÔNG MINH]: 
+    // Nếu bạn đang gõ dở câu hiện tại (đã gõ > 2 chữ), bấm Back sẽ chỉ quay lại ĐẦU CÂU HIỆN TẠI để nghe lại từ đầu.
+    // Nếu bạn đang ở sát đầu câu, bấm Back mới lùi về ĐẦU CÂU TRƯỚC ĐÓ.
+    let targetSegIdx = currentSegIdx;
+    if (currentCaret <= currentSegStart + 2) {
+      targetSegIdx = currentSegIdx - 1;
+    }
+    
     if (targetSegIdx < 0) targetSegIdx = 0;
 
     inputUI.virtualValue = src.text.substring(0, src.charStarts[targetSegIdx]);
     inputUI.processInput();
   }
-});
 
 document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
   if (e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
