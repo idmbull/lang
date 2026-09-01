@@ -412,7 +412,7 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       if (data.caret >= src.charStarts[i]) { newSegIdx = i; break; }
     }
 
-    if (newSegIdx !== oldSegIdx) {
+    if (newSegIdx !== oldSegIdx) { // Sửa thành Khác (!==) để chấp nhận cả tua lùi và tua tiến
       Store.setCurrentSegment(newSegIdx);
       const seg = src.segments[newSegIdx];
       if (seg) {
@@ -546,6 +546,7 @@ document.addEventListener('keydown', (e) => {
     inputUI.virtualValue = src.text.substring(0, src.charStarts[targetSegIdx]);
     inputUI.processInput();
   }
+});
 
 document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
   if (e.target.tagName !== "SPAN" || e.target.classList.contains("newline-char")) return;
