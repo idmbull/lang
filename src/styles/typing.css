@@ -479,15 +479,22 @@ select {
 }
 
 /* ================= CHẾ ĐỘ YOUTUBE CLEAN / NORMAL ================= */
+/* Định dạng thẻ video */
 .video-box video,
+#videoPlayer,
 #youtubePlayerPlaceholder {
     width: 100% !important;
     height: 100% !important;
+    max-height: none !important;
+    /* PHÁ BỎ MỨC TRẦN 180PX BỊ KẸT BÊN TRÊN */
     display: block;
     background: #000;
     outline: none;
     border: none;
     flex: 1;
+    pointer-events: auto;
+    object-fit: contain !important;
+    /* ÉP VIDEO GIÃN NỞ LẤP KÍN KHUNG BỌC NGOÀI */
 }
 
 /* ================= TRẠNG THÁI LAYOUT ================= */
