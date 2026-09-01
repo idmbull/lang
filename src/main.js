@@ -265,6 +265,22 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   const parsed = ContentParser.parseUnified(content);
   const words = TypingEngine.computeWords(parsed.text, parsed.language);
 
+  // =================================================================
+  // [MỚI BỔ SUNG] TỰ ĐỘNG ĐỔI THEME THEO NGÔN NGỮ BÀI HỌC
+  // =================================================================
+  let autoTheme = 'english';
+  if (parsed.language === 'zh') autoTheme = 'mandarin';
+  else if (parsed.language === 'ko') autoTheme = 'korean';
+
+  // 1. Áp dụng Theme mới cho toàn bộ web
+  document.documentElement.setAttribute('data-theme', autoTheme);
+  // 2. Lưu vào bộ nhớ để F5 không bị mất
+  localStorage.setItem('pref_theme', autoTheme);
+  // 3. Cập nhật lại cái menu dropdown (để nó hiển thị đúng tên theme đang chọn)
+  const themeSelect = document.getElementById('themeSelect');
+  if (themeSelect) themeSelect.value = autoTheme;
+  // =================================================================
+
   let mediaType = null;
   let finalYoutubeUrl = parsed.metadata.youtube || youtubeUrl;
   let metadataVideoUrl = parsed.metadata.video;
