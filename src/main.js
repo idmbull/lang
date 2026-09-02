@@ -26,7 +26,7 @@ console.log("=== IDM TYPING MASTER FULLY LOADED ===");
 const AUDIO_BASE = "https://cdn.jsdelivr.net/gh/idmbull/english@main/assets/audio/";
 
 // =================================================================
-// 0. KHÔI PHỤC CÀI ĐẶT NGƯỜI DÙNG
+// 0. KHÔI PHỤC CÀI ĐẶT
 // =================================================================
 function restoreUserPreferences() {
   const getBool = (key, defaultVal) => {
@@ -81,7 +81,7 @@ function restoreUserPreferences() {
 restoreUserPreferences();
 
 // =================================================================
-// 1. KHỞI TẠO CÁC COMPONENT
+// 1. KHỞI TẠO COMPONENT
 // =================================================================
 const displayUI = new TextDisplay('textDisplay');
 const inputUI = new InputManager('textInput');
@@ -210,12 +210,9 @@ function applyBlindModeUI(caretPos) {
 function toggleExercise(isStarting) {
   const textInput = document.getElementById('textInput');
   const actionToggle = document.getElementById('actionToggle');
-  const videoBox = document.getElementById('videoContainer'); // Thêm truy xuất videoBox
   if (actionToggle) actionToggle.checked = isStarting;
 
   if (isStarting) {
-    if (videoBox) videoBox.classList.add('is-typing'); // BẬT trạng thái giấu thanh Youtube
-
     document.getElementById('actionLabel').textContent = "Stop";
     document.getElementById('actionLabel').style.color = "var(--incorrect-color)";
     Store.startExercise();
@@ -239,8 +236,6 @@ function toggleExercise(isStarting) {
       document.getElementById('wpm').textContent = wpm;
     });
   } else {
-    if (videoBox) videoBox.classList.remove('is-typing'); // TẮT trạng thái giấu thanh Youtube
-
     document.getElementById('actionLabel').textContent = "Start";
     document.getElementById('actionLabel').style.color = "var(--correct-color)";
     Store.stopExercise();
@@ -265,26 +260,10 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   const parsed = ContentParser.parseUnified(content);
   const words = TypingEngine.computeWords(parsed.text, parsed.language);
 
-  // =================================================================
-  // [MỚI BỔ SUNG] TỰ ĐỘNG ĐỔI THEME THEO NGÔN NGỮ BÀI HỌC
-  // =================================================================
-  let autoTheme = 'english';
-  if (parsed.language === 'zh') autoTheme = 'mandarin';
-  else if (parsed.language === 'ko') autoTheme = 'korean';
-
-  // 1. Áp dụng Theme mới cho toàn bộ web
-  document.documentElement.setAttribute('data-theme', autoTheme);
-  // 2. Lưu vào bộ nhớ để F5 không bị mất
-  localStorage.setItem('pref_theme', autoTheme);
-  // 3. Cập nhật lại cái menu dropdown (để nó hiển thị đúng tên theme đang chọn)
-  const themeSelect = document.getElementById('themeSelect');
-  if (themeSelect) themeSelect.value = autoTheme;
-  // =================================================================
-
   let mediaType = null;
-  let finalYoutubeUrl = parsed.metadata.youtube || youtubeUrl;
-  let metadataVideoUrl = parsed.metadata.video;
-  let metadataAudioUrl = parsed.metadata.audio;
+  let finalYoutubeUrl = parsed.metadata?.youtube || youtubeUrl;
+  let metadataVideoUrl = parsed.metadata?.video;
+  let metadataAudioUrl = parsed.metadata?.audio;
 
   if (finalYoutubeUrl) {
     mediaType = 'youtube';
@@ -387,7 +366,7 @@ EventBus.on(EVENTS.EXERCISE_START, () => {
 });
 
 // =================================================================
-// 5. XỬ LÝ SỰ KIỆN GÕ BÀN PHÍM
+// 5. XỬ LÝ SỰ KIỆN GÕ BÀN PHÍM (ĐÃ NÂNG CẤP LOGIC ANCHOR)
 // =================================================================
 EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
   if (document.getElementById('soundToggle').checked) AudioResolver.playClick();
@@ -412,13 +391,25 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       if (data.caret >= src.charStarts[i]) { newSegIdx = i; break; }
     }
 
-    if (newSegIdx !== oldSegIdx) { // Sửa thành Khác (!==) để chấp nhận cả tua lùi và tua tiến
+    // [THÊM]: Kéo lùi mốc neo về nếu người dùng gõ lùi (xóa chữ)
+    if (newSegIdx < src.maxReachedSegment) {
+        src.maxReachedSegment = newSegIdx;
+    }
+
+    if (newSegIdx !== oldSegIdx) {
       Store.setCurrentSegment(newSegIdx);
       const seg = src.segments[newSegIdx];
+      
       if (seg) {
-        if (MediaSystem.isLoaded()) MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
-        else if (document.getElementById('autoPronounceToggle').checked && Store.getMediaType() !== 'video' && Store.getMediaType() !== 'youtube') {
-          AudioResolver.playNativeTTS(seg.text);
+        // [THÊM]: Chỉ phát audio khi TIẾN LÊN và vượt qua mốc neo
+        if (newSegIdx > oldSegIdx && newSegIdx >= src.maxReachedSegment) {
+            src.maxReachedSegment = newSegIdx;
+            
+            if (MediaSystem.isLoaded()) {
+                MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
+            } else if (document.getElementById('autoPronounceToggle').checked && Store.getMediaType() !== 'video' && Store.getMediaType() !== 'youtube') {
+                AudioResolver.playNativeTTS(seg.text);
+            }
         }
       }
     }
@@ -505,7 +496,7 @@ document.addEventListener('keydown', (e) => {
     if (blindToggle) blindToggle.click();
   }
 
-  // Nút Next (Ctrl + Mũi tên Phải)
+  // Nút NEXT (Ctrl + Mũi tên Phải)
   if (e.ctrlKey && e.code === "ArrowRight") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -513,17 +504,21 @@ document.addEventListener('keydown', (e) => {
     const src = Store.getSource();
     const currentSegIdx = src.currentSegment;
 
+    let nextSegIdx = currentSegIdx + 1;
     if (currentSegIdx < src.segments.length - 1) {
-      const nextSegIdx = currentSegIdx + 1;
       inputUI.virtualValue = src.text.substring(0, src.charStarts[nextSegIdx]);
     } else {
-      // [FIX LỖI]: Nếu đang ở câu cuối cùng, tua thẳng đến kết thúc bài!
       inputUI.virtualValue = src.text;
+      nextSegIdx = src.segments.length - 1;
     }
     inputUI.processInput();
+    
+    // Cập nhật lại mốc neo và ép phát nhạc
+    src.maxReachedSegment = nextSegIdx;
+    setTimeout(playCurrentAudioOrSegment, 50);
   }
 
-  // Nút Back (Ctrl + Mũi tên Trái)
+  // Nút BACK (Ctrl + Mũi tên Trái)
   if (e.ctrlKey && e.code === "ArrowLeft") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -533,18 +528,17 @@ document.addEventListener('keydown', (e) => {
     const currentCaret = inputUI.virtualValue.length;
     const currentSegStart = src.charStarts[currentSegIdx];
 
-    // [NÂNG CẤP THÔNG MINH]: 
-    // Nếu bạn đang gõ dở câu hiện tại (đã gõ > 2 chữ), bấm Back sẽ chỉ quay lại ĐẦU CÂU HIỆN TẠI để nghe lại từ đầu.
-    // Nếu bạn đang ở sát đầu câu, bấm Back mới lùi về ĐẦU CÂU TRƯỚC ĐÓ.
     let targetSegIdx = currentSegIdx;
     if (currentCaret <= currentSegStart + 2) {
       targetSegIdx = currentSegIdx - 1;
     }
-
     if (targetSegIdx < 0) targetSegIdx = 0;
 
     inputUI.virtualValue = src.text.substring(0, src.charStarts[targetSegIdx]);
     inputUI.processInput();
+    
+    // Ép phát nhạc để người dùng nghe lại câu vừa tua
+    setTimeout(playCurrentAudioOrSegment, 50);
   }
 });
 
@@ -582,7 +576,7 @@ document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
 });
 
 // =================================================================
-// 7. QUẢN LÝ DOCKING LAYOUT VÀ DRAG/RESIZE VIDEO
+// 7. QUẢN LÝ DOCKING LAYOUT VÀ DRAG VIDEO
 // =================================================================
 const appLayout = document.getElementById('appLayout');
 const videoContainer = document.getElementById('videoContainer');
@@ -596,22 +590,14 @@ function setLayout(layoutType) {
   localStorage.setItem('pref_layout', layoutType);
 
   appLayout.className = `app-layout layout-${layoutType}`;
-  if (layoutType === 'left' || layoutType === 'right') {
-    appLayout.classList.add('wide-mode');
-  } else {
-    appLayout.classList.remove('wide-mode');
-  }
 
   dockBtns.forEach(btn => btn.classList.remove('active'));
   document.querySelector(`.dock-btn[data-dock="${layoutType}"]`)?.classList.add('active');
 
-  // [SỬA LỖI Ở ĐÂY]: Xóa SẠCH tọa độ và kích thước cũ bị kẹt do lúc kéo/resize
-  videoContainer.style.left = '';
-  videoContainer.style.top = '';
-  videoContainer.style.bottom = '';
-  videoContainer.style.right = '';
-  videoContainer.style.width = '';  // Reset chiều ngang
-  videoContainer.style.height = ''; // Reset chiều dọc
+  if (layoutType !== 'float') {
+    videoContainer.style.left = ''; videoContainer.style.top = '';
+    videoContainer.style.bottom = ''; videoContainer.style.right = '';
+  }
 
   document.getElementById('textInput').focus();
 }
@@ -622,117 +608,51 @@ dockBtns.forEach(btn => {
   btn.onclick = () => setLayout(btn.dataset.dock);
 });
 
-// LOGIC DRAG (DI CHUYỂN) VÀ RESIZE (THAY ĐỔI KÍCH THƯỚC)
 let isDragging = false;
-let isResizing = false;
-let startX, startY, initialLeft, initialTop, startW, startH, resizeDir;
+let startX, startY, initialLeft, initialTop;
 
-// 1. Gắn sự kiện Mousedown cho Nút Di chuyển (Drag)
 if (dragHandle && videoContainer) {
   dragHandle.addEventListener('mousedown', (e) => {
     if (currentLayout !== 'float') return;
+
     isDragging = true;
-    startX = e.clientX; startY = e.clientY;
-    const rect = videoContainer.getBoundingClientRect();
-    initialLeft = rect.left; initialTop = rect.top;
-
-    videoContainer.style.bottom = 'auto'; videoContainer.style.right = 'auto';
-    videoContainer.style.left = `${initialLeft}px`; videoContainer.style.top = `${initialTop}px`;
-
-    document.body.style.userSelect = 'none';
-    const blocker = document.createElement('div');
-    blocker.id = 'iframeBlocker'; blocker.style = 'position:absolute; inset:0; z-index:9999;';
-    videoContainer.appendChild(blocker);
-  });
-}
-
-// 2. Gắn sự kiện Mousedown cho các thanh Resize
-document.querySelectorAll('.resize-handle').forEach(handle => {
-  handle.addEventListener('mousedown', (e) => {
-    isResizing = true;
-
-    // KIỂM TRA CHÍNH XÁC CLASS HIỆN TẠI ĐỂ TRÁNH NHẦM LẪN (Fix lỗi Float Resize)
-    if (handle.classList.contains('handle-br')) resizeDir = 'br';
-    else if (handle.classList.contains('handle-b')) resizeDir = 'b';
-    else if (handle.classList.contains('handle-r')) resizeDir = 'r';
-    else if (handle.classList.contains('handle-l')) resizeDir = 'l';
-
-    startX = e.clientX; startY = e.clientY;
+    startX = e.clientX;
+    startY = e.clientY;
 
     const rect = videoContainer.getBoundingClientRect();
-    startW = rect.width; startH = rect.height;
+    initialLeft = rect.left;
+    initialTop = rect.top;
 
-    // Riêng chế độ Float, cần ép vị trí neo theo Top-Left để Resize không bị giật
-    if (currentLayout === 'float') {
-      videoContainer.style.bottom = 'auto'; videoContainer.style.right = 'auto';
-      videoContainer.style.left = `${rect.left}px`; videoContainer.style.top = `${rect.top}px`;
-    }
+    videoContainer.style.bottom = 'auto';
+    videoContainer.style.right = 'auto';
+    videoContainer.style.left = `${initialLeft}px`;
+    videoContainer.style.top = `${initialTop}px`;
 
     document.body.style.userSelect = 'none';
-    const blocker = document.createElement('div');
-    blocker.id = 'iframeBlocker'; blocker.style = 'position:absolute; inset:0; z-index:9999;';
-    videoContainer.appendChild(blocker);
-    e.stopPropagation(); // Ngăn đụng chạm với Drag
-  });
-});
 
-// 3. Xử lý chuột Di chuyển (Dùng chung cho cả Drag và Resize)
-document.addEventListener('mousemove', (e) => {
-  if (isDragging) {
+    const iframeBlocker = document.createElement('div');
+    iframeBlocker.id = 'iframeBlocker';
+    iframeBlocker.style = 'position:absolute; top:0; left:0; width:100%; height:100%; z-index:9999;';
+    videoContainer.appendChild(iframeBlocker);
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
     videoContainer.style.left = `${initialLeft + dx}px`;
     videoContainer.style.top = `${initialTop + dy}px`;
-  }
+  });
 
-  if (isResizing) {
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-
-    // Tối ưu hướng mở rộng tùy theo cạnh đang cầm
-    if (resizeDir === 'r') {
-      videoContainer.style.width = `${Math.max(300, startW + dx)}px`;
-    } else if (resizeDir === 'l') {
-      videoContainer.style.width = `${Math.max(300, startW - dx)}px`;
-    } else if (resizeDir === 'b') {
-      videoContainer.style.height = `${Math.max(150, startH + dy)}px`;
-    } else if (resizeDir === 'br') {
-      videoContainer.style.width = `${Math.max(250, startW + dx)}px`;
-      // Handle-br (Trôi nổi) có CSS auto-aspect-ratio nên chỉ cần set Width, Height tự chạy theo.
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      document.body.style.userSelect = '';
+      const blocker = document.getElementById('iframeBlocker');
+      if (blocker) blocker.remove();
     }
-  }
-});
-
-// 4. Nhả chuột (Lưu trữ trạng thái)
-document.addEventListener('mouseup', () => {
-  if (isDragging || isResizing) {
-
-    // Lưu lại kích thước nếu vừa kéo Resize
-    if (isResizing) {
-      if (currentLayout === 'left' || currentLayout === 'right') {
-        localStorage.setItem('pref_video_width', videoContainer.style.width);
-      } else if (currentLayout === 'top') {
-        localStorage.setItem('pref_video_height', videoContainer.style.height);
-      } else if (currentLayout === 'float') {
-        localStorage.setItem('pref_video_float_width', videoContainer.style.width);
-      }
-    }
-
-    // Lưu lại vị trí (Tọa độ) nếu đang ở dạng Float (Dù là Move hay Resize thì tọa độ đều có thể thay đổi)
-    if (currentLayout === 'float' && videoContainer.style.left) {
-      localStorage.setItem('pref_video_float_pos', JSON.stringify({
-        left: videoContainer.style.left,
-        top: videoContainer.style.top
-      }));
-    }
-
-    isDragging = false;
-    isResizing = false;
-    document.body.style.userSelect = '';
-    const blocker = document.getElementById('iframeBlocker');
-    if (blocker) blocker.remove();
-  }
-});
+  });
+}
 
 // =================================================================
 // 8. KẾT QUẢ & TIỆN ÍCH
@@ -747,7 +667,11 @@ document.getElementById('btnReplay').onclick = () => {
   Store.getState().prevIndex = 0; Store.getState().prevInputLen = 0;
   Store.getState().stats = { totalKeys: 0, correctKeys: 0, errors: 0 };
   Store.getState().furthestSpokenIndex = -1;
-  if (Store.isAudio()) Store.setCurrentSegment(0);
+  
+  if (Store.isAudio()) {
+      Store.setCurrentSegment(0);
+      Store.getSource().maxReachedSegment = 0; // [THÊM]: Reset mốc neo khi luyện lại bài
+  }
 
   const allIndices = Array.from(Array(Store.getState().textSpans.length).keys());
   displayUI.updateCursor(0, allIndices, Store.getSource().text, "");
