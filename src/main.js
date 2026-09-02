@@ -270,9 +270,9 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   if (themeSelect) themeSelect.value = autoTheme;
 
   let mediaType = null;
-  let finalYoutubeUrl = parsed.metadata.youtube || youtubeUrl;
-  let metadataVideoUrl = parsed.metadata.video;
-  let metadataAudioUrl = parsed.metadata.audio;
+  let finalYoutubeUrl = parsed.metadata?.youtube || youtubeUrl;
+  let metadataVideoUrl = parsed.metadata?.video;
+  let metadataAudioUrl = parsed.metadata?.audio;
 
   if (finalYoutubeUrl) {
     mediaType = 'youtube';
@@ -334,15 +334,6 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
       videoContainer.classList.remove('hidden');
       document.getElementById('videoPlayer').classList.add('hidden');
       document.getElementById('youtubePlayerPlaceholder').classList.remove('hidden');
-      
-      const ytToggle = document.getElementById('ytModeToggleBtn');
-      if (ytToggle) {
-          videoContainer.classList.add('yt-clean');
-          videoContainer.classList.remove('yt-normal');
-          ytToggle.classList.remove('active');
-          ytToggle.title = "Chế độ YouTube: Clean (Khóa chuột)";
-      }
-
     } else if (mediaType === 'video') {
       videoContainer.classList.remove('hidden');
       document.getElementById('videoPlayer').classList.remove('hidden');
@@ -380,11 +371,13 @@ EventBus.on('app:load_local_lesson', (data) => loadLessonToApp(data.title, data.
 
 EventBus.on(EVENTS.EXERCISE_START, () => {
   const actionToggle = document.getElementById('actionToggle');
-  if (actionToggle && !actionToggle.checked) toggleExercise(true);
+  if (actionToggle && !actionToggle.checked) {
+    toggleExercise(true);
+  }
 });
 
 // =================================================================
-// 5. XỬ LÝ SỰ KIỆN GÕ BÀN PHÍM
+// 5. XỬ LÝ SỰ KIỆN GÕ BÀN PHÍM (LOGIC MỐC NEO THÔNG MINH)
 // =================================================================
 EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
   if (document.getElementById('soundToggle').checked) AudioResolver.playClick();
@@ -409,7 +402,8 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       if (data.caret >= src.charStarts[i]) { newSegIdx = i; break; }
     }
 
-    if (newSegIdx < src.maxReachedSegment) {
+    // [LOGIC MỐC NEO]: Nếu xóa sâu vào câu trước (quá 2 ký tự), thì kéo Mốc Neo lùi về
+    if (src.maxReachedSegment > 0 && data.caret <= src.charStarts[src.maxReachedSegment] - 3) {
         src.maxReachedSegment = newSegIdx;
     }
 
@@ -418,7 +412,8 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       const seg = src.segments[newSegIdx];
       
       if (seg) {
-        if (newSegIdx > oldSegIdx && newSegIdx >= src.maxReachedSegment) {
+        // [LOGIC MỐC NEO]: Chỉ phát âm thanh khi Gõ Tiến Lên VÀ Vượt qua Mốc Neo
+        if (newSegIdx > oldSegIdx && newSegIdx > src.maxReachedSegment) {
             src.maxReachedSegment = newSegIdx;
             
             if (MediaSystem.isLoaded()) {
@@ -454,7 +449,7 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
 document.getElementById('actionToggle').addEventListener('change', (e) => toggleExercise(e.target.checked));
 
 // =================================================================
-// 6. PHÍM TẮT & PHÁT ÂM
+// 6. PHÍM TẮT & PHÁT ÂM (DOUBLE CLICK / TAB)
 // =================================================================
 function forceSpeakCurrentWord() {
   const state = Store.getState();
@@ -512,6 +507,7 @@ document.addEventListener('keydown', (e) => {
     if (blindToggle) blindToggle.click();
   }
 
+  // Nút NEXT (Ctrl + Mũi tên Phải)
   if (e.ctrlKey && e.code === "ArrowRight") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -519,19 +515,19 @@ document.addEventListener('keydown', (e) => {
     const src = Store.getSource();
     const currentSegIdx = src.currentSegment;
 
-    let nextSegIdx = currentSegIdx + 1;
     if (currentSegIdx < src.segments.length - 1) {
+      const nextSegIdx = currentSegIdx + 1;
+      // Ép Mốc Neo phải chạy theo để cho phép phát nhạc
+      src.maxReachedSegment = nextSegIdx - 1; 
       inputUI.virtualValue = src.text.substring(0, src.charStarts[nextSegIdx]);
+      inputUI.processInput();
     } else {
       inputUI.virtualValue = src.text;
-      nextSegIdx = src.segments.length - 1;
+      inputUI.processInput();
     }
-    inputUI.processInput();
-    
-    src.maxReachedSegment = nextSegIdx;
-    setTimeout(playCurrentAudioOrSegment, 50);
   }
 
+  // Nút BACK (Ctrl + Mũi tên Trái)
   if (e.ctrlKey && e.code === "ArrowLeft") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -542,6 +538,7 @@ document.addEventListener('keydown', (e) => {
     const currentSegStart = src.charStarts[currentSegIdx];
 
     let targetSegIdx = currentSegIdx;
+    // Nếu gõ < 2 ký tự thì lùi hẳn về đầu câu trước. Nếu đã gõ sâu vào trong thì lùi về đầu câu hiện tại.
     if (currentCaret <= currentSegStart + 2) {
       targetSegIdx = currentSegIdx - 1;
     }
@@ -550,6 +547,7 @@ document.addEventListener('keydown', (e) => {
     inputUI.virtualValue = src.text.substring(0, src.charStarts[targetSegIdx]);
     inputUI.processInput();
     
+    // Do lùi lại thì ko kích hoạt nhạc tự động, nên ta ép phát bằng tay
     setTimeout(playCurrentAudioOrSegment, 50);
   }
 });
@@ -588,50 +586,35 @@ document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
 });
 
 // =================================================================
-// 7. QUẢN LÝ DOCKING LAYOUT VÀ DRAG VIDEO
+// 7. QUẢN LÝ DOCKING LAYOUT VÀ DRAG/RESIZE VIDEO
 // =================================================================
 const appLayout = document.getElementById('appLayout');
 const videoContainer = document.getElementById('videoContainer');
 const dragHandle = document.getElementById('videoDragHandle');
 const dockBtns = document.querySelectorAll('.dock-btn[data-dock]');
-const ytModeToggleBtn = document.getElementById('ytModeToggleBtn');
 
 let currentLayout = localStorage.getItem('pref_layout') || 'float';
-let isYtCleanMode = true;
-
-if (ytModeToggleBtn) {
-    ytModeToggleBtn.onclick = () => {
-        isYtCleanMode = !isYtCleanMode;
-        if (isYtCleanMode) {
-            videoContainer.classList.add('yt-clean');
-            videoContainer.classList.remove('yt-normal');
-            ytModeToggleBtn.classList.remove('active');
-            ytModeToggleBtn.title = "Chế độ YouTube: Clean (Khóa chuột)";
-        } else {
-            videoContainer.classList.remove('yt-clean');
-            videoContainer.classList.add('yt-normal');
-            ytModeToggleBtn.classList.add('active');
-            ytModeToggleBtn.title = "Chế độ YouTube: Normal (Mở khóa chuột)";
-        }
-        document.getElementById('textInput').focus();
-    };
-}
 
 function setLayout(layoutType) {
   currentLayout = layoutType;
   localStorage.setItem('pref_layout', layoutType);
 
   appLayout.className = `app-layout layout-${layoutType}`;
+  if (layoutType === 'left' || layoutType === 'right') {
+    appLayout.classList.add('wide-mode');
+  } else {
+    appLayout.classList.remove('wide-mode');
+  }
 
   dockBtns.forEach(btn => btn.classList.remove('active'));
   document.querySelector(`.dock-btn[data-dock="${layoutType}"]`)?.classList.add('active');
 
-  if (layoutType !== 'float') {
-    videoContainer.style.left = ''; videoContainer.style.top = '';
-    videoContainer.style.bottom = ''; videoContainer.style.right = '';
-    videoContainer.style.width = '';  
-    videoContainer.style.height = ''; 
-  }
+  videoContainer.style.left = '';
+  videoContainer.style.top = '';
+  videoContainer.style.bottom = '';
+  videoContainer.style.right = '';
+  videoContainer.style.width = '';  
+  videoContainer.style.height = ''; 
 
   document.getElementById('textInput').focus();
 }
@@ -642,7 +625,6 @@ dockBtns.forEach(btn => {
   btn.onclick = () => setLayout(btn.dataset.dock);
 });
 
-// TẠO THANH KÉO (RESIZE HANDLES) TỰ ĐỘNG BẰNG JS
 const handles = ['handle-l', 'handle-r', 'handle-b', 'handle-br'];
 handles.forEach(cls => {
     const h = document.createElement('div');
@@ -655,12 +637,10 @@ let isResizing = false;
 let resizeDir = '';
 let startX, startY, initialLeft, initialTop, startW, startH;
 
-// SỰ KIỆN KÉO THẢ (DRAG) - CHỈ DÙNG CHO CHẾ ĐỘ TRÔI NỔI (FLOAT)
 if (dragHandle && videoContainer) {
   dragHandle.addEventListener('mousedown', (e) => {
     if (currentLayout !== 'float') return;
     
-    // [FIX LỖI CHỌN CHỮ]: Chặn đứng hành động bôi đen chữ của trình duyệt khi đang cố nắm kéo video
     e.preventDefault(); 
     e.stopPropagation();
 
@@ -684,11 +664,9 @@ if (dragHandle && videoContainer) {
   });
 }
 
-// SỰ KIỆN NẮM VIỀN ĐỂ ĐỔI KÍCH THƯỚC (RESIZE)
 videoContainer.addEventListener('mousedown', (e) => {
   if (e.target.classList.contains('resize-handle')) {
     
-    // [FIX LỖI CHỌN CHỮ]: Chặn đứng hành động bôi đen chữ khi đang nắm viền kéo giãn video
     e.preventDefault(); 
     e.stopPropagation();
     
@@ -721,7 +699,6 @@ videoContainer.addEventListener('mousedown', (e) => {
   }
 });
 
-// XỬ LÝ KHI CHUỘT DI CHUYỂN
 document.addEventListener('mousemove', (e) => {
   if (isDragging) {
     const dx = e.clientX - startX;
@@ -749,7 +726,6 @@ document.addEventListener('mousemove', (e) => {
   }
 });
 
-// NHẢ CHUỘT (Hoàn tất Drag / Resize)
 document.addEventListener('mouseup', () => {
   if (isDragging || isResizing) {
     isDragging = false;
@@ -814,6 +790,6 @@ if (editBtn) {
   editBtn.onclick = () => {
     const path = Store.getState().currentLessonPath;
     if (!path) return alert("Bài tập Local không thể sửa trên GitHub.");
-    window.open(`https://github.com/idmbull/lang/edit/main${path}`, '_blank');
+    window.open(`https://github.com/idmbull/english/edit/main${path}`, '_blank');
   };
 }
