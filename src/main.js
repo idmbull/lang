@@ -260,19 +260,6 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   const parsed = ContentParser.parseUnified(content);
   const words = TypingEngine.computeWords(parsed.text, parsed.language);
 
-  // =================================================================
-  // [MỚI] TỰ ĐỘNG ĐỔI THEME THEO NGÔN NGỮ CỦA BÀI HỌC
-  // =================================================================
-  let autoTheme = 'english';
-  if (parsed.language === 'zh') autoTheme = 'mandarin';
-  else if (parsed.language === 'ko') autoTheme = 'korean';
-
-  document.documentElement.setAttribute('data-theme', autoTheme);
-  localStorage.setItem('pref_theme', autoTheme);
-  const themeSelect = document.getElementById('themeSelect');
-  if (themeSelect) themeSelect.value = autoTheme;
-  // =================================================================
-
   let mediaType = null;
   let finalYoutubeUrl = parsed.metadata?.youtube || youtubeUrl;
   let metadataVideoUrl = parsed.metadata?.video;
@@ -375,13 +362,11 @@ EventBus.on('app:load_local_lesson', (data) => loadLessonToApp(data.title, data.
 
 EventBus.on(EVENTS.EXERCISE_START, () => {
   const actionToggle = document.getElementById('actionToggle');
-  if (actionToggle && !actionToggle.checked) {
-    toggleExercise(true);
-  }
+  if (actionToggle && !actionToggle.checked) toggleExercise(true);
 });
 
 // =================================================================
-// 4. XỬ LÝ SỰ KIỆN GÕ BÀN PHÍM
+// 5. XỬ LÝ SỰ KIỆN GÕ BÀN PHÍM
 // =================================================================
 EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
   if (document.getElementById('soundToggle').checked) AudioResolver.playClick();
@@ -451,7 +436,7 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
 document.getElementById('actionToggle').addEventListener('change', (e) => toggleExercise(e.target.checked));
 
 // =================================================================
-// 5. PHÍM TẮT & PHÁT ÂM (DOUBLE CLICK / TAB)
+// 6. PHÍM TẮT & PHÁT ÂM (DOUBLE CLICK / TAB)
 // =================================================================
 function forceSpeakCurrentWord() {
   const state = Store.getState();
@@ -509,7 +494,6 @@ document.addEventListener('keydown', (e) => {
     if (blindToggle) blindToggle.click();
   }
 
-  // Nút Next (Ctrl + Mũi tên Phải)
   if (e.ctrlKey && e.code === "ArrowRight") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -530,7 +514,6 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  // Nút Back (Ctrl + Mũi tên Trái)
   if (e.ctrlKey && e.code === "ArrowLeft") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -544,7 +527,6 @@ document.addEventListener('keydown', (e) => {
     if (currentCaret <= currentSegStart + 2) {
       targetSegIdx = currentSegIdx - 1;
     }
-    
     if (targetSegIdx < 0) targetSegIdx = 0;
 
     inputUI.virtualValue = src.text.substring(0, src.charStarts[targetSegIdx]);
@@ -588,7 +570,7 @@ document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
 });
 
 // =================================================================
-// 6. QUẢN LÝ DOCKING LAYOUT VÀ DRAG VIDEO
+// 7. QUẢN LÝ DOCKING LAYOUT VÀ DRAG/RESIZE VIDEO
 // =================================================================
 const appLayout = document.getElementById('appLayout');
 const videoContainer = document.getElementById('videoContainer');
@@ -602,14 +584,22 @@ function setLayout(layoutType) {
   localStorage.setItem('pref_layout', layoutType);
 
   appLayout.className = `app-layout layout-${layoutType}`;
+  if (layoutType === 'left' || layoutType === 'right') {
+    appLayout.classList.add('wide-mode');
+  } else {
+    appLayout.classList.remove('wide-mode');
+  }
 
   dockBtns.forEach(btn => btn.classList.remove('active'));
   document.querySelector(`.dock-btn[data-dock="${layoutType}"]`)?.classList.add('active');
 
-  if (layoutType !== 'float') {
-    videoContainer.style.left = ''; videoContainer.style.top = '';
-    videoContainer.style.bottom = ''; videoContainer.style.right = '';
-  }
+  // Xóa tọa độ/kích thước rác do kéo thủ công tạo ra
+  videoContainer.style.left = '';
+  videoContainer.style.top = '';
+  videoContainer.style.bottom = '';
+  videoContainer.style.right = '';
+  videoContainer.style.width = '';  
+  videoContainer.style.height = ''; 
 
   document.getElementById('textInput').focus();
 }
@@ -620,9 +610,20 @@ dockBtns.forEach(btn => {
   btn.onclick = () => setLayout(btn.dataset.dock);
 });
 
-let isDragging = false;
-let startX, startY, initialLeft, initialTop;
+// THÊM HTML CHO CÁC THANH KÉO (RESIZE HANDLES)
+const handles = ['handle-l', 'handle-r', 'handle-b', 'handle-br'];
+handles.forEach(cls => {
+    const h = document.createElement('div');
+    h.className = `resize-handle ${cls}`;
+    videoContainer.appendChild(h);
+});
 
+let isDragging = false;
+let isResizing = false;
+let resizeDir = '';
+let startX, startY, initialLeft, initialTop, startW, startH;
+
+// SỰ KIỆN KÉO THẢ (DRAG)
 if (dragHandle && videoContainer) {
   dragHandle.addEventListener('mousedown', (e) => {
     if (currentLayout !== 'float') return;
@@ -641,33 +642,88 @@ if (dragHandle && videoContainer) {
     videoContainer.style.top = `${initialTop}px`;
 
     document.body.style.userSelect = 'none';
-
-    const iframeBlocker = document.createElement('div');
-    iframeBlocker.id = 'iframeBlocker';
-    iframeBlocker.style = 'position:absolute; top:0; left:0; width:100%; height:100%; z-index:9999;';
-    videoContainer.appendChild(iframeBlocker);
+    const blocker = document.createElement('div');
+    blocker.id = 'iframeBlocker';
+    blocker.style = 'position:absolute; top:0; left:0; width:100%; height:100%; z-index:9999;';
+    videoContainer.appendChild(blocker);
   });
+}
 
-  document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
+// SỰ KIỆN KÉO GIÃN KHUNG (RESIZE)
+videoContainer.addEventListener('mousedown', (e) => {
+  if (e.target.classList.contains('resize-handle')) {
+    isResizing = true;
+    
+    if (e.target.classList.contains('handle-br')) resizeDir = 'br';
+    else if (e.target.classList.contains('handle-b')) resizeDir = 'b';
+    else if (e.target.classList.contains('handle-r')) resizeDir = 'r';
+    else if (e.target.classList.contains('handle-l')) resizeDir = 'l';
+
+    startX = e.clientX;
+    startY = e.clientY;
+
+    const rect = videoContainer.getBoundingClientRect();
+    startW = rect.width;
+    startH = rect.height;
+
+    if (currentLayout === 'float') {
+      videoContainer.style.bottom = 'auto';
+      videoContainer.style.right = 'auto';
+      videoContainer.style.left = `${rect.left}px`;
+      videoContainer.style.top = `${rect.top}px`;
+    }
+
+    document.body.style.userSelect = 'none';
+    const blocker = document.createElement('div');
+    blocker.id = 'iframeBlocker';
+    blocker.style = 'position:absolute; inset:0; z-index:9999;';
+    videoContainer.appendChild(blocker);
+    
+    e.stopPropagation();
+  }
+});
+
+// XỬ LÝ KHI CHUỘT DI CHUYỂN
+document.addEventListener('mousemove', (e) => {
+  if (isDragging) {
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
     videoContainer.style.left = `${initialLeft + dx}px`;
     videoContainer.style.top = `${initialTop + dy}px`;
-  });
+  }
 
-  document.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      document.body.style.userSelect = '';
-      const blocker = document.getElementById('iframeBlocker');
-      if (blocker) blocker.remove();
+  if (isResizing) {
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    if (currentLayout === 'float' && resizeDir === 'br') {
+        videoContainer.style.width = `${Math.max(250, startW + dx)}px`;
+    } 
+    else if (currentLayout === 'left' && resizeDir === 'r') {
+        videoContainer.style.width = `${Math.max(300, startW + dx)}px`;
     }
-  });
-}
+    else if (currentLayout === 'right' && resizeDir === 'l') {
+        videoContainer.style.width = `${Math.max(300, startW - dx)}px`;
+    }
+    else if (currentLayout === 'top' && resizeDir === 'b') {
+        videoContainer.style.height = `${Math.max(150, startH + dy)}px`;
+    }
+  }
+});
+
+// NHẢ CHUỘT (Hoàn tất Drag / Resize)
+document.addEventListener('mouseup', () => {
+  if (isDragging || isResizing) {
+    isDragging = false;
+    isResizing = false;
+    document.body.style.userSelect = '';
+    const blocker = document.getElementById('iframeBlocker');
+    if (blocker) blocker.remove();
+  }
+});
 
 // =================================================================
-// 7. KẾT QUẢ & TIỆN ÍCH
+// 8. KẾT QUẢ & TIỆN ÍCH
 // =================================================================
 const resultModal = document.getElementById('resultModal');
 
@@ -679,10 +735,9 @@ document.getElementById('btnReplay').onclick = () => {
   Store.getState().prevIndex = 0; Store.getState().prevInputLen = 0;
   Store.getState().stats = { totalKeys: 0, correctKeys: 0, errors: 0 };
   Store.getState().furthestSpokenIndex = -1;
-  
   if (Store.isAudio()) {
       Store.setCurrentSegment(0);
-      Store.getSource().maxReachedSegment = 0; 
+      Store.getSource().maxReachedSegment = 0;
   }
 
   const allIndices = Array.from(Array(Store.getState().textSpans.length).keys());
