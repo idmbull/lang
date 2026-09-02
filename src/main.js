@@ -260,10 +260,19 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   const parsed = ContentParser.parseUnified(content);
   const words = TypingEngine.computeWords(parsed.text, parsed.language);
 
+  let autoTheme = 'english';
+  if (parsed.language === 'zh') autoTheme = 'mandarin';
+  else if (parsed.language === 'ko') autoTheme = 'korean';
+
+  document.documentElement.setAttribute('data-theme', autoTheme);
+  localStorage.setItem('pref_theme', autoTheme);
+  const themeSelect = document.getElementById('themeSelect');
+  if (themeSelect) themeSelect.value = autoTheme;
+
   let mediaType = null;
-  let finalYoutubeUrl = parsed.metadata?.youtube || youtubeUrl;
-  let metadataVideoUrl = parsed.metadata?.video;
-  let metadataAudioUrl = parsed.metadata?.audio;
+  let finalYoutubeUrl = parsed.metadata.youtube || youtubeUrl;
+  let metadataVideoUrl = parsed.metadata.video;
+  let metadataAudioUrl = parsed.metadata.audio;
 
   if (finalYoutubeUrl) {
     mediaType = 'youtube';
@@ -325,6 +334,15 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
       videoContainer.classList.remove('hidden');
       document.getElementById('videoPlayer').classList.add('hidden');
       document.getElementById('youtubePlayerPlaceholder').classList.remove('hidden');
+      
+      const ytToggle = document.getElementById('ytModeToggleBtn');
+      if (ytToggle) {
+          videoContainer.classList.add('yt-clean');
+          videoContainer.classList.remove('yt-normal');
+          ytToggle.classList.remove('active');
+          ytToggle.title = "Chế độ YouTube: Clean (Khóa chuột)";
+      }
+
     } else if (mediaType === 'video') {
       videoContainer.classList.remove('hidden');
       document.getElementById('videoPlayer').classList.remove('hidden');
@@ -436,7 +454,7 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
 document.getElementById('actionToggle').addEventListener('change', (e) => toggleExercise(e.target.checked));
 
 // =================================================================
-// 6. PHÍM TẮT & PHÁT ÂM (DOUBLE CLICK / TAB)
+// 6. PHÍM TẮT & PHÁT ÂM
 // =================================================================
 function forceSpeakCurrentWord() {
   const state = Store.getState();
@@ -501,17 +519,17 @@ document.addEventListener('keydown', (e) => {
     const src = Store.getSource();
     const currentSegIdx = src.currentSegment;
 
+    let nextSegIdx = currentSegIdx + 1;
     if (currentSegIdx < src.segments.length - 1) {
-      const nextSegIdx = currentSegIdx + 1;
       inputUI.virtualValue = src.text.substring(0, src.charStarts[nextSegIdx]);
-      inputUI.processInput();
-      
-      src.maxReachedSegment = nextSegIdx;
-      setTimeout(playCurrentAudioOrSegment, 50);
     } else {
       inputUI.virtualValue = src.text;
-      inputUI.processInput();
+      nextSegIdx = src.segments.length - 1;
     }
+    inputUI.processInput();
+    
+    src.maxReachedSegment = nextSegIdx;
+    setTimeout(playCurrentAudioOrSegment, 50);
   }
 
   if (e.ctrlKey && e.code === "ArrowLeft") {
@@ -570,36 +588,50 @@ document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
 });
 
 // =================================================================
-// 7. QUẢN LÝ DOCKING LAYOUT VÀ DRAG/RESIZE VIDEO
+// 7. QUẢN LÝ DOCKING LAYOUT VÀ DRAG VIDEO
 // =================================================================
 const appLayout = document.getElementById('appLayout');
 const videoContainer = document.getElementById('videoContainer');
 const dragHandle = document.getElementById('videoDragHandle');
 const dockBtns = document.querySelectorAll('.dock-btn[data-dock]');
+const ytModeToggleBtn = document.getElementById('ytModeToggleBtn');
 
 let currentLayout = localStorage.getItem('pref_layout') || 'float';
+let isYtCleanMode = true;
+
+if (ytModeToggleBtn) {
+    ytModeToggleBtn.onclick = () => {
+        isYtCleanMode = !isYtCleanMode;
+        if (isYtCleanMode) {
+            videoContainer.classList.add('yt-clean');
+            videoContainer.classList.remove('yt-normal');
+            ytModeToggleBtn.classList.remove('active');
+            ytModeToggleBtn.title = "Chế độ YouTube: Clean (Khóa chuột)";
+        } else {
+            videoContainer.classList.remove('yt-clean');
+            videoContainer.classList.add('yt-normal');
+            ytModeToggleBtn.classList.add('active');
+            ytModeToggleBtn.title = "Chế độ YouTube: Normal (Mở khóa chuột)";
+        }
+        document.getElementById('textInput').focus();
+    };
+}
 
 function setLayout(layoutType) {
   currentLayout = layoutType;
   localStorage.setItem('pref_layout', layoutType);
 
   appLayout.className = `app-layout layout-${layoutType}`;
-  if (layoutType === 'left' || layoutType === 'right') {
-    appLayout.classList.add('wide-mode');
-  } else {
-    appLayout.classList.remove('wide-mode');
-  }
 
   dockBtns.forEach(btn => btn.classList.remove('active'));
   document.querySelector(`.dock-btn[data-dock="${layoutType}"]`)?.classList.add('active');
 
-  // Xóa tọa độ/kích thước rác do kéo thủ công tạo ra
-  videoContainer.style.left = '';
-  videoContainer.style.top = '';
-  videoContainer.style.bottom = '';
-  videoContainer.style.right = '';
-  videoContainer.style.width = '';  
-  videoContainer.style.height = ''; 
+  if (layoutType !== 'float') {
+    videoContainer.style.left = ''; videoContainer.style.top = '';
+    videoContainer.style.bottom = ''; videoContainer.style.right = '';
+    videoContainer.style.width = '';  
+    videoContainer.style.height = ''; 
+  }
 
   document.getElementById('textInput').focus();
 }
@@ -610,7 +642,7 @@ dockBtns.forEach(btn => {
   btn.onclick = () => setLayout(btn.dataset.dock);
 });
 
-// THÊM HTML CHO CÁC THANH KÉO (RESIZE HANDLES)
+// TẠO THANH KÉO (RESIZE HANDLES) TỰ ĐỘNG BẰNG JS
 const handles = ['handle-l', 'handle-r', 'handle-b', 'handle-br'];
 handles.forEach(cls => {
     const h = document.createElement('div');
@@ -623,15 +655,18 @@ let isResizing = false;
 let resizeDir = '';
 let startX, startY, initialLeft, initialTop, startW, startH;
 
-// SỰ KIỆN KÉO THẢ (DRAG)
+// SỰ KIỆN KÉO THẢ (DRAG) - CHỈ DÙNG CHO CHẾ ĐỘ TRÔI NỔI (FLOAT)
 if (dragHandle && videoContainer) {
   dragHandle.addEventListener('mousedown', (e) => {
     if (currentLayout !== 'float') return;
+    
+    // [FIX LỖI CHỌN CHỮ]: Chặn đứng hành động bôi đen chữ của trình duyệt khi đang cố nắm kéo video
+    e.preventDefault(); 
+    e.stopPropagation();
 
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
-
     const rect = videoContainer.getBoundingClientRect();
     initialLeft = rect.left;
     initialTop = rect.top;
@@ -649,9 +684,14 @@ if (dragHandle && videoContainer) {
   });
 }
 
-// SỰ KIỆN KÉO GIÃN KHUNG (RESIZE)
+// SỰ KIỆN NẮM VIỀN ĐỂ ĐỔI KÍCH THƯỚC (RESIZE)
 videoContainer.addEventListener('mousedown', (e) => {
   if (e.target.classList.contains('resize-handle')) {
+    
+    // [FIX LỖI CHỌN CHỮ]: Chặn đứng hành động bôi đen chữ khi đang nắm viền kéo giãn video
+    e.preventDefault(); 
+    e.stopPropagation();
+    
     isResizing = true;
     
     if (e.target.classList.contains('handle-br')) resizeDir = 'br';
@@ -678,8 +718,6 @@ videoContainer.addEventListener('mousedown', (e) => {
     blocker.id = 'iframeBlocker';
     blocker.style = 'position:absolute; inset:0; z-index:9999;';
     videoContainer.appendChild(blocker);
-    
-    e.stopPropagation();
   }
 });
 
@@ -737,7 +775,7 @@ document.getElementById('btnReplay').onclick = () => {
   Store.getState().furthestSpokenIndex = -1;
   if (Store.isAudio()) {
       Store.setCurrentSegment(0);
-      Store.getSource().maxReachedSegment = 0;
+      Store.getSource().maxReachedSegment = 0; 
   }
 
   const allIndices = Array.from(Array(Store.getState().textSpans.length).keys());
