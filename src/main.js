@@ -26,7 +26,7 @@ console.log("=== IDM TYPING MASTER FULLY LOADED ===");
 const AUDIO_BASE = "https://cdn.jsdelivr.net/gh/idmbull/english@main/assets/audio/";
 
 // =================================================================
-// 0. KHÔI PHỤC CÀI ĐẶT
+// 0. KHÔI PHỤC CÀI ĐẶT NGƯỜI DÙNG
 // =================================================================
 function restoreUserPreferences() {
   const getBool = (key, defaultVal) => {
@@ -81,7 +81,7 @@ function restoreUserPreferences() {
 restoreUserPreferences();
 
 // =================================================================
-// 1. KHỞI TẠO COMPONENT
+// 1. KHỞI TẠO CÁC COMPONENT
 // =================================================================
 const displayUI = new TextDisplay('textDisplay');
 const inputUI = new InputManager('textInput');
@@ -260,6 +260,19 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   const parsed = ContentParser.parseUnified(content);
   const words = TypingEngine.computeWords(parsed.text, parsed.language);
 
+  // =================================================================
+  // [MỚI] TỰ ĐỘNG ĐỔI THEME THEO NGÔN NGỮ CỦA BÀI HỌC
+  // =================================================================
+  let autoTheme = 'english';
+  if (parsed.language === 'zh') autoTheme = 'mandarin';
+  else if (parsed.language === 'ko') autoTheme = 'korean';
+
+  document.documentElement.setAttribute('data-theme', autoTheme);
+  localStorage.setItem('pref_theme', autoTheme);
+  const themeSelect = document.getElementById('themeSelect');
+  if (themeSelect) themeSelect.value = autoTheme;
+  // =================================================================
+
   let mediaType = null;
   let finalYoutubeUrl = parsed.metadata?.youtube || youtubeUrl;
   let metadataVideoUrl = parsed.metadata?.video;
@@ -362,11 +375,13 @@ EventBus.on('app:load_local_lesson', (data) => loadLessonToApp(data.title, data.
 
 EventBus.on(EVENTS.EXERCISE_START, () => {
   const actionToggle = document.getElementById('actionToggle');
-  if (actionToggle && !actionToggle.checked) toggleExercise(true);
+  if (actionToggle && !actionToggle.checked) {
+    toggleExercise(true);
+  }
 });
 
 // =================================================================
-// 5. XỬ LÝ SỰ KIỆN GÕ BÀN PHÍM (ĐÃ NÂNG CẤP LOGIC ANCHOR)
+// 4. XỬ LÝ SỰ KIỆN GÕ BÀN PHÍM
 // =================================================================
 EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
   if (document.getElementById('soundToggle').checked) AudioResolver.playClick();
@@ -391,7 +406,6 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       if (data.caret >= src.charStarts[i]) { newSegIdx = i; break; }
     }
 
-    // [THÊM]: Kéo lùi mốc neo về nếu người dùng gõ lùi (xóa chữ)
     if (newSegIdx < src.maxReachedSegment) {
         src.maxReachedSegment = newSegIdx;
     }
@@ -401,7 +415,6 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
       const seg = src.segments[newSegIdx];
       
       if (seg) {
-        // [THÊM]: Chỉ phát audio khi TIẾN LÊN và vượt qua mốc neo
         if (newSegIdx > oldSegIdx && newSegIdx >= src.maxReachedSegment) {
             src.maxReachedSegment = newSegIdx;
             
@@ -438,7 +451,7 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
 document.getElementById('actionToggle').addEventListener('change', (e) => toggleExercise(e.target.checked));
 
 // =================================================================
-// 6. PHÍM TẮT & PHÁT ÂM (DOUBLE CLICK / TAB)
+// 5. PHÍM TẮT & PHÁT ÂM (DOUBLE CLICK / TAB)
 // =================================================================
 function forceSpeakCurrentWord() {
   const state = Store.getState();
@@ -496,7 +509,7 @@ document.addEventListener('keydown', (e) => {
     if (blindToggle) blindToggle.click();
   }
 
-  // Nút NEXT (Ctrl + Mũi tên Phải)
+  // Nút Next (Ctrl + Mũi tên Phải)
   if (e.ctrlKey && e.code === "ArrowRight") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -504,21 +517,20 @@ document.addEventListener('keydown', (e) => {
     const src = Store.getSource();
     const currentSegIdx = src.currentSegment;
 
-    let nextSegIdx = currentSegIdx + 1;
     if (currentSegIdx < src.segments.length - 1) {
+      const nextSegIdx = currentSegIdx + 1;
       inputUI.virtualValue = src.text.substring(0, src.charStarts[nextSegIdx]);
+      inputUI.processInput();
+      
+      src.maxReachedSegment = nextSegIdx;
+      setTimeout(playCurrentAudioOrSegment, 50);
     } else {
       inputUI.virtualValue = src.text;
-      nextSegIdx = src.segments.length - 1;
+      inputUI.processInput();
     }
-    inputUI.processInput();
-    
-    // Cập nhật lại mốc neo và ép phát nhạc
-    src.maxReachedSegment = nextSegIdx;
-    setTimeout(playCurrentAudioOrSegment, 50);
   }
 
-  // Nút BACK (Ctrl + Mũi tên Trái)
+  // Nút Back (Ctrl + Mũi tên Trái)
   if (e.ctrlKey && e.code === "ArrowLeft") {
     e.preventDefault();
     if (!Store.isAudio() || !Store.getState().isActive) return;
@@ -532,12 +544,12 @@ document.addEventListener('keydown', (e) => {
     if (currentCaret <= currentSegStart + 2) {
       targetSegIdx = currentSegIdx - 1;
     }
+    
     if (targetSegIdx < 0) targetSegIdx = 0;
 
     inputUI.virtualValue = src.text.substring(0, src.charStarts[targetSegIdx]);
     inputUI.processInput();
     
-    // Ép phát nhạc để người dùng nghe lại câu vừa tua
     setTimeout(playCurrentAudioOrSegment, 50);
   }
 });
@@ -576,7 +588,7 @@ document.getElementById('textDisplay').addEventListener("dblclick", (e) => {
 });
 
 // =================================================================
-// 7. QUẢN LÝ DOCKING LAYOUT VÀ DRAG VIDEO
+// 6. QUẢN LÝ DOCKING LAYOUT VÀ DRAG VIDEO
 // =================================================================
 const appLayout = document.getElementById('appLayout');
 const videoContainer = document.getElementById('videoContainer');
@@ -655,7 +667,7 @@ if (dragHandle && videoContainer) {
 }
 
 // =================================================================
-// 8. KẾT QUẢ & TIỆN ÍCH
+// 7. KẾT QUẢ & TIỆN ÍCH
 // =================================================================
 const resultModal = document.getElementById('resultModal');
 
@@ -670,7 +682,7 @@ document.getElementById('btnReplay').onclick = () => {
   
   if (Store.isAudio()) {
       Store.setCurrentSegment(0);
-      Store.getSource().maxReachedSegment = 0; // [THÊM]: Reset mốc neo khi luyện lại bài
+      Store.getSource().maxReachedSegment = 0; 
   }
 
   const allIndices = Array.from(Array(Store.getState().textSpans.length).keys());
