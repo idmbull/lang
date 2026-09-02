@@ -10,6 +10,7 @@ const INITIAL_STATE = {
         segments: [],
         charStarts: [],
         currentSegment: 0,
+        maxReachedSegment: 0, // [MỚI]: Biến nhớ "mốc neo" xa nhất đã từng gõ tới
         audioUrl: null,
         language: 'en'
     },
@@ -45,7 +46,8 @@ export const Store = {
     setSourceUnified(data, mediaType, audioUrl, lessonPath = null) {
         this.reset();
         state.mediaType = mediaType;
-        state.source = { ...data, audioUrl, currentSegment: 0 };
+        // Reset luôn cả mốc neo khi nạp bài mới
+        state.source = { ...data, audioUrl, currentSegment: 0, maxReachedSegment: 0 };
         state.currentLessonPath = lessonPath;
     },
 
