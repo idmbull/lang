@@ -49,3 +49,17 @@
     --font-ui: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
     --font-mono: 'Malgun Gothic', 'Apple SD Gothic Neo', monospace;
 }
+
+/* Khải Thư (Kaishu) - Dành riêng để luyện nét chữ Hán */
+[data-theme="kaishu"] {
+    /* Khai báo tuần tự các phông Khải Thư chuẩn trên Windows, Mac và Linux */
+    --font-ui: 'KaiTi', 'Kaiti SC', 'STKaiti', 'AR PL UKai CN', 'BiauKai', serif;
+    --font-mono: 'KaiTi', 'Kaiti SC', 'STKaiti', 'AR PL UKai CN', 'BiauKai', monospace;
+    
+    /* Làm nền lỗi nhạt đi để không bị chói nét chữ */
+    --incorrect-bg: rgba(244, 67, 54, 0.08); 
+    
+    /* Đổi màu nhấn (Accent) sang tông Đỏ Cam (Màu ấn triện thư pháp) */
+    --accent-color: #e67e22; 
+    --accent-gradient: linear-gradient(to right, #c0392b, #e67e22);
+}
