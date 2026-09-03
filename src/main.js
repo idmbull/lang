@@ -790,6 +790,6 @@ if (editBtn) {
   editBtn.onclick = () => {
     const path = Store.getState().currentLessonPath;
     if (!path) return alert("Bài tập Local không thể sửa trên GitHub.");
-    window.open(`https://github.com/idmbull/english/edit/main${path}`, '_blank');
+    window.open(`https://github.com/idmbull/lang/edit/main${path}`, '_blank');
   };
 }
