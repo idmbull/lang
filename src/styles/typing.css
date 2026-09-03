@@ -638,3 +638,18 @@ select {
 .layout-top .handle-b {
     display: block;
 }
+
+/* ================= TỐI ƯU HIỂN THỊ RIÊNG CHO KHẢI THƯ ================= */
+[data-theme="kaishu"] .text-display {
+    font-size: 1.8rem;      /* Phóng to chữ hơn bình thường để soi rõ nét */
+    line-height: 2.2;       /* Giãn dòng thoáng hơn */
+    letter-spacing: 2px;    /* Tăng khoảng cách giữa các chữ */
+    font-weight: 500;       /* Làm đậm nét lên một chút cho dễ nhìn */
+}
+
+/* Ẩn chế độ bôi đậm in nghiêng Markdown trong Khải thư để tránh làm biến dạng nét gốc */
+[data-theme="kaishu"] .text-display strong, 
+[data-theme="kaishu"] .text-display em {
+    font-weight: normal;
+    font-style: normal;
+}
