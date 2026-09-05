@@ -359,11 +359,15 @@ async function loadLessonToApp(title, content, path = null, mediaFile = null, en
   const textInput = document.getElementById('textInput');
   textInput.value = ""; inputUI.virtualValue = ""; textInput.disabled = false;
 
-  const actionToggle = document.getElementById('actionToggle');
-  if (actionToggle) actionToggle.checked = false;
-  document.getElementById('actionLabel').textContent = "Start";
-  document.getElementById('actionLabel').style.color = "var(--correct-color)";
-  textInput.focus();
+  // TẮT TỰ ĐỘNG BẮT ĐẦU NGAY KHI LOAD BÀI XONG
+  // const actionToggle = document.getElementById('actionToggle');
+  // if (actionToggle) actionToggle.checked = false;
+  // document.getElementById('actionLabel').textContent = "Start";
+  // document.getElementById('actionLabel').style.color = "var(--correct-color)";
+  // textInput.focus();
+
+  // TỰ ĐỘNG BẮT ĐẦU NGAY KHI LOAD BÀI XONG
+  toggleExercise(true);
 }
 
 EventBus.on('app:load_lesson', (data) => loadLessonToApp(data.title, data.content, data.path));
@@ -404,23 +408,23 @@ EventBus.on(EVENTS.INPUT_CHANGE, (data) => {
 
     // [LOGIC MỐC NEO]: Nếu xóa sâu vào câu trước (quá 2 ký tự), thì kéo Mốc Neo lùi về
     if (src.maxReachedSegment > 0 && data.caret <= src.charStarts[src.maxReachedSegment] - 3) {
-        src.maxReachedSegment = newSegIdx;
+      src.maxReachedSegment = newSegIdx;
     }
 
     if (newSegIdx !== oldSegIdx) {
       Store.setCurrentSegment(newSegIdx);
       const seg = src.segments[newSegIdx];
-      
+
       if (seg) {
         // [LOGIC MỐC NEO]: Chỉ phát âm thanh khi Gõ Tiến Lên VÀ Vượt qua Mốc Neo
         if (newSegIdx > oldSegIdx && newSegIdx > src.maxReachedSegment) {
-            src.maxReachedSegment = newSegIdx;
-            
-            if (MediaSystem.isLoaded()) {
-                MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
-            } else if (document.getElementById('autoPronounceToggle').checked && Store.getMediaType() !== 'video' && Store.getMediaType() !== 'youtube') {
-                AudioResolver.playNativeTTS(seg.text);
-            }
+          src.maxReachedSegment = newSegIdx;
+
+          if (MediaSystem.isLoaded()) {
+            MediaSystem.playSegment(seg.audioStart, seg.audioEnd);
+          } else if (document.getElementById('autoPronounceToggle').checked && Store.getMediaType() !== 'video' && Store.getMediaType() !== 'youtube') {
+            AudioResolver.playNativeTTS(seg.text);
+          }
         }
       }
     }
@@ -518,7 +522,7 @@ document.addEventListener('keydown', (e) => {
     if (currentSegIdx < src.segments.length - 1) {
       const nextSegIdx = currentSegIdx + 1;
       // Ép Mốc Neo phải chạy theo để cho phép phát nhạc
-      src.maxReachedSegment = nextSegIdx - 1; 
+      src.maxReachedSegment = nextSegIdx - 1;
       inputUI.virtualValue = src.text.substring(0, src.charStarts[nextSegIdx]);
       inputUI.processInput();
     } else {
@@ -546,7 +550,7 @@ document.addEventListener('keydown', (e) => {
 
     inputUI.virtualValue = src.text.substring(0, src.charStarts[targetSegIdx]);
     inputUI.processInput();
-    
+
     // Do lùi lại thì ko kích hoạt nhạc tự động, nên ta ép phát bằng tay
     setTimeout(playCurrentAudioOrSegment, 50);
   }
@@ -613,8 +617,8 @@ function setLayout(layoutType) {
   videoContainer.style.top = '';
   videoContainer.style.bottom = '';
   videoContainer.style.right = '';
-  videoContainer.style.width = '';  
-  videoContainer.style.height = ''; 
+  videoContainer.style.width = '';
+  videoContainer.style.height = '';
 
   document.getElementById('textInput').focus();
 }
@@ -627,9 +631,9 @@ dockBtns.forEach(btn => {
 
 const handles = ['handle-l', 'handle-r', 'handle-b', 'handle-br'];
 handles.forEach(cls => {
-    const h = document.createElement('div');
-    h.className = `resize-handle ${cls}`;
-    videoContainer.appendChild(h);
+  const h = document.createElement('div');
+  h.className = `resize-handle ${cls}`;
+  videoContainer.appendChild(h);
 });
 
 let isDragging = false;
@@ -640,8 +644,8 @@ let startX, startY, initialLeft, initialTop, startW, startH;
 if (dragHandle && videoContainer) {
   dragHandle.addEventListener('mousedown', (e) => {
     if (currentLayout !== 'float') return;
-    
-    e.preventDefault(); 
+
+    e.preventDefault();
     e.stopPropagation();
 
     isDragging = true;
@@ -666,12 +670,12 @@ if (dragHandle && videoContainer) {
 
 videoContainer.addEventListener('mousedown', (e) => {
   if (e.target.classList.contains('resize-handle')) {
-    
-    e.preventDefault(); 
+
+    e.preventDefault();
     e.stopPropagation();
-    
+
     isResizing = true;
-    
+
     if (e.target.classList.contains('handle-br')) resizeDir = 'br';
     else if (e.target.classList.contains('handle-b')) resizeDir = 'b';
     else if (e.target.classList.contains('handle-r')) resizeDir = 'r';
@@ -712,16 +716,16 @@ document.addEventListener('mousemove', (e) => {
     const dy = e.clientY - startY;
 
     if (currentLayout === 'float' && resizeDir === 'br') {
-        videoContainer.style.width = `${Math.max(250, startW + dx)}px`;
-    } 
+      videoContainer.style.width = `${Math.max(250, startW + dx)}px`;
+    }
     else if (currentLayout === 'left' && resizeDir === 'r') {
-        videoContainer.style.width = `${Math.max(300, startW + dx)}px`;
+      videoContainer.style.width = `${Math.max(300, startW + dx)}px`;
     }
     else if (currentLayout === 'right' && resizeDir === 'l') {
-        videoContainer.style.width = `${Math.max(300, startW - dx)}px`;
+      videoContainer.style.width = `${Math.max(300, startW - dx)}px`;
     }
     else if (currentLayout === 'top' && resizeDir === 'b') {
-        videoContainer.style.height = `${Math.max(150, startH + dy)}px`;
+      videoContainer.style.height = `${Math.max(150, startH + dy)}px`;
     }
   }
 });
@@ -750,8 +754,8 @@ document.getElementById('btnReplay').onclick = () => {
   Store.getState().stats = { totalKeys: 0, correctKeys: 0, errors: 0 };
   Store.getState().furthestSpokenIndex = -1;
   if (Store.isAudio()) {
-      Store.setCurrentSegment(0);
-      Store.getSource().maxReachedSegment = 0; 
+    Store.setCurrentSegment(0);
+    Store.getSource().maxReachedSegment = 0;
   }
 
   const allIndices = Array.from(Array(Store.getState().textSpans.length).keys());
@@ -790,6 +794,6 @@ if (editBtn) {
   editBtn.onclick = () => {
     const path = Store.getState().currentLessonPath;
     if (!path) return alert("Bài tập Local không thể sửa trên GitHub.");
-    window.open(`https://github.com/idmbull/lang/edit/main${path}`, '_blank');
+    window.open(`https://github.com/idmbull/english/edit/main${path}`, '_blank');
   };
 }
