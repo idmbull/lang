@@ -5,17 +5,13 @@ const TIMESTAMP_REGEX = /^([\d.]+)\s+([\d.]+)/;
 function cleanForTyping(text) {
     if (!text) return "";
     let s = text;
-    s = s.replace(/\^\[[^\]]+\]/g, ''); // Bỏ footnote
-    s = s.replace(/`[^`]+`/g, '');      // Bỏ skip text
-
-    // [ĐÃ SỬA LỖI Ở ĐÂY]: Chỉ gỡ bỏ định dạng Markdown khi nó là một cặp hợp lệ.
-    // Không xóa mù quáng các dấu * hoặc _ đứng một mình (phép toán).
+    s = s.replace(/\^\[[^\]]+\]/g, ''); 
+    s = s.replace(/`[^`]+`/g, '');      
     s = s.replace(/\*\*(.+?)\*\*/g, "$1");
     s = s.replace(/\*(.+?)\*/g, "$1");
     s = s.replace(/__(.+?)__/g, "$1");
     s = s.replace(/_(.+?)_/g, "$1");
     s = s.replace(/~~(.+?)~~/g, "$1");
-
     s = s.replace(/[\r\n\t]+/g, ' ');
     s = s.replace(/\s+/g, ' ');
     return s;
@@ -68,7 +64,7 @@ function parseDictationLine(line, cleanFunc) {
 
 export const ContentParser = {
     parseUnified(rawContent) {
-        let contentToParse = rawContent.trimStart();
+        let contentToParse = rawContent.trimStart(); 
         const metadata = {};
 
         const frontmatterMatch = contentToParse.match(/^---\r?\n([\s\S]*?)\r?\n---(\r?\n|$)/);
@@ -81,16 +77,16 @@ export const ContentParser = {
                     metadata[key.trim().toLowerCase()] = valueParts.join(':').trim();
                 }
             });
-            contentToParse = contentToParse.replace(frontmatterMatch[0], '').trimStart();
+            contentToParse = contentToParse.replace(frontmatterMatch[0], '').trimStart(); 
         }
 
         const lines = contentToParse.split(/\r?\n/);
         const language = LocaleService.detectLanguage(contentToParse);
-
+        
         const result = {
             title: "", text: "", html: "", language: language,
-            segments: [], charStarts: [],
-            metadata: metadata
+            segments: [], charStarts: [], 
+            metadata: metadata 
         };
 
         let blocks = [];
@@ -99,7 +95,8 @@ export const ContentParser = {
 
         const cleanLine = (text) => {
             if (!text) return "";
-            let s = text.replace(/&nbsp;/gi, " ").replace(/\u00A0/g, " ").replace(/[—–]/g, "-").replace(/ …/g, "...").replace(/…/g, "...");
+            // Đã xóa lệnh replace(/[—–]/g, "-") ra khỏi dòng này để không ảnh hưởng tiếng Trung
+            let s = text.replace(/&nbsp;/gi, " ").replace(/\u00A0/g, " ").replace(/ …/g, "...").replace(/…/g, "...");
 
             if (language === 'zh') {
                 s = s.replace(/"/g, () => {
@@ -109,6 +106,8 @@ export const ContentParser = {
                 });
             } else {
                 s = s.replace(/[“”「」『』«»]/g, '"').replace(/[‘’]/g, "'");
+                // Chỉ bẻ gãy dấu gạch ngang thành dấu trừ nếu không phải là tiếng Trung
+                s = s.replace(/[—–]/g, "-");
             }
             return s.replace(/\u200B/g, "");
         };
@@ -147,7 +146,7 @@ export const ContentParser = {
             if (block.type === 'header' || block.type === 'break') {
                 flushParagraph();
                 if (block.type === 'header') result.html += `<h3 class="visual-header">${block.content}</h3>`;
-                lastBlockWasBreak = true;
+                lastBlockWasBreak = true; 
                 return;
             }
 
@@ -180,8 +179,8 @@ export const ContentParser = {
                 result.text += prefix + cleanFragment;
 
                 if (block.type === 'audio') result.segments.push({ audioStart: block.start, audioEnd: block.end, text: cleanFragment.trim() });
-
-                lastBlockWasBreak = false;
+                
+                lastBlockWasBreak = false; 
             }
             else if (isSkippedLine) {
                 if (result.text.length > 0 && !result.text.endsWith(" ")) result.text += " ";
