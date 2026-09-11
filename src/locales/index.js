@@ -14,15 +14,45 @@ export const LocaleService = {
     isChinese(text) { return REGEX_CHINESE.test(text); },
     isPunctuation(text) { return REGEX_PUNCTUATION.test(text); },
 
-    // Xử lý nắn dấu quote tuỳ theo ngôn ngữ
-    applySmartQuotes(char, expectedChar) {
-        const DOUBLE_QUOTES = ['"', '“', '”', '«', '»', '「', '」', '『', '』'];
-        const SINGLE_QUOTES = ["'", '‘', '’'];
+    // CỖ MÁY ÉP KIỂU DẤU CÂU THÔNG MINH
+    applySmartQuotes(incomingStr, expectedText, currentCaret) {
+        if (!incomingStr || !expectedText) return incomingStr;
+        
+        let result = "";
+        
+        const PUNCTUATIONS = [
+            ['"', '“', '”', '«', '»'],
+            ["'", '‘', '’'],
+            [',', '，', '、'],
+            ['.', '。'],
+            ['!', '！'],
+            ['?', '？'],
+            [':', '：'],
+            [';', '；'],
+            ['(', '（'],
+            [')', '）'],
+            ['[', '【', '「', '『'],
+            [']', '】', '」', '』'],
+            ['-', '—', '–', '―', '——'] // [BỔ SUNG VÀO ĐÂY]: Anh em nhà dấu gạch ngang
+        ];
 
-        if (expectedChar) {
-            if (DOUBLE_QUOTES.includes(char) && DOUBLE_QUOTES.includes(expectedChar)) return expectedChar;
-            if (SINGLE_QUOTES.includes(char) && SINGLE_QUOTES.includes(expectedChar)) return expectedChar;
+        for (let i = 0; i < incomingStr.length; i++) {
+            const char = incomingStr[i];
+            const expectedChar = expectedText[currentCaret + i];
+            
+            let mappedChar = char;
+            
+            if (expectedChar) {
+                for (const group of PUNCTUATIONS) {
+                    if (group.includes(char) && group.includes(expectedChar)) {
+                        mappedChar = expectedChar;
+                        break;
+                    }
+                }
+            }
+            result += mappedChar;
         }
-        return char;
+        
+        return result;
     }
 };
